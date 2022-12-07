@@ -1,5 +1,4 @@
 ## Data analysis for C.formosanus tandem movements on sticky trap
-## Preprocess.R
 ## N. Mizumoto
 
 #------------------------------------------------------------------------------#
