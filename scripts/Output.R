@@ -413,8 +413,6 @@ Compare.traveled.dis <- function(){
 plot.PCA <- function(){
   load("data/df_pca.rda")
   
-  print(summary(pl))
-  
   ggplot(df.pca.res[df.pca.res$swap<2,],aes(x=PC1, y=PC2)) + 
     stat_density_2d(geom = "polygon", 
                     aes(alpha = ..level.., fill = as.factor(swap)))+
@@ -456,30 +454,35 @@ plot.PCA <- function(){
       expand = 10
       for(i in 1:dim(dftemp)[1]){
         dftempplot = subset(df.all, name == dftemp[i,1] & time == dftemp[i,2])
-        plot(0, pch="none", xlim=c(mean(as.numeric(dftempplot[,c(3,5,7,9,11,13)]))-expand,
-                                   mean(as.numeric(dftempplot[,c(3,5,7,9,11,13)]))+expand), 
-             ylim=c(mean(as.numeric(dftempplot[,c(4,6,8,10,12,14)]))-expand,
-                    mean(as.numeric(dftempplot[,c(4,6,8,10,12,14)]))+expand), col="#58c8acff")
-        arrows(dftempplot[,3], dftempplot[,4], dftempplot[,5], dftempplot[,6], length=0)
-        arrows(dftempplot[,5], dftempplot[,6], dftempplot[,7], dftempplot[,8], length=0)
-        arrows(dftempplot[,9], dftempplot[,10], dftempplot[,11], dftempplot[,12], length=0)
-        arrows(dftempplot[,11], dftempplot[,12], dftempplot[,13], dftempplot[,14], length=0)
+        xrange = mean(as.numeric(dftempplot[,c(3,5,7,9,11,13)]))
+        ytange = mean(as.numeric(dftempplot[,c(4,6,8,10,12,14)]))
+        plot(0, pch="none", xlim=c(xrange-expand, xrange+expand), 
+             ylim=c(ytange-expand, ytange+expand), col="#58c8acff",)
+        title(paste(round(c(dftemp[i,"PC1"], dftemp[i,"PC2"]),2), 
+                    collapse = ", "), line = -2)
+        draw.arrow = function(x1,y1, x2, y2){ 
+          arrows(dftempplot[,x1], dftempplot[,y1],
+                 dftempplot[,x2], dftempplot[,y2], length=0)}
+        draw.arrow(3,4,5,6)
+        draw.arrow(5,6,7,8)
+        draw.arrow(9,10,11,12)
+        draw.arrow(11,12,13,14)
         
-        arrows(dftempplot[,3], dftempplot[,4], dftempplot[,9], dftempplot[,10], length=0, lty = 3, lwd=0.5)
-        arrows(dftempplot[,3], dftempplot[,4], dftempplot[,11], dftempplot[,12], length=0, lty = 3, lwd=0.5)
-        arrows(dftempplot[,3], dftempplot[,4], dftempplot[,13], dftempplot[,14], length=0, lty = 3, lwd=0.5)
+        draw.arrow(3,4,9,10)
+        draw.arrow(3,4,11,12)
+        draw.arrow(3,4,13,14)
+
+        draw.arrow(5,6,9,10)
+        draw.arrow(5,6,11,12)
+        draw.arrow(5,6,13,14)
         
-        arrows(dftempplot[,5], dftempplot[,6], dftempplot[,9], dftempplot[,10], length=0, lty = 3, lwd=0.5)
-        arrows(dftempplot[,5], dftempplot[,6], dftempplot[,11], dftempplot[,12], length=0, lty = 3, lwd=0.5)
-        arrows(dftempplot[,5], dftempplot[,6], dftempplot[,13], dftempplot[,14], length=0, lty = 3, lwd=0.5)
+        draw.arrow(7,8,9,10)
+        draw.arrow(7,8,11,12)
+        draw.arrow(7,8,13,14)
         
-        arrows(dftempplot[,7], dftempplot[,8], dftempplot[,9], dftempplot[,10], length=0, lty = 3, lwd=0.5)
-        arrows(dftempplot[,7], dftempplot[,8], dftempplot[,11], dftempplot[,12], length=0, lty = 3, lwd=0.5)
-        arrows(dftempplot[,7], dftempplot[,8], dftempplot[,13], dftempplot[,14], length=0, lty = 3, lwd=0.5)
-        
-        arrows(dftempplot[,5], dftempplot[,6], dftempplot[,7], dftempplot[,8], length=0)
-        arrows(dftempplot[,9], dftempplot[,10], dftempplot[,11], dftempplot[,12], length=0)
-        arrows(dftempplot[,11], dftempplot[,12], dftempplot[,13], dftempplot[,14], length=0)
+        draw.arrow(5,6,7,8)
+        draw.arrow(9,10,11,12)
+        draw.arrow(11,12,13,14)
         
         points(dftempplot[,5:6], col="#2c7dd3ff", pch=19)
         points(dftempplot[,3:4], col="#7009d3ff", pch=19)
@@ -487,24 +490,28 @@ plot.PCA <- function(){
         points(dftempplot[,9:10], col="#8fb972ff", pch=19)
         points(dftempplot[,11:12], col="#b86d3bff", pch=19)
         points(dftempplot[,13:14], col="#d51315ff", pch=19)
+        
       }
     }
     
     set.seed(2)
-    dftemp = df.pca.res[round(df.pca.res$PC1,0) == -2 &
-                          round(df.pca.res$PC2,0) == -1 &
+    dftemp = df.pca.res[df.pca.res$PC1 < -1.2 &
+                          df.pca.res$PC2 < -0.5 &
                           df.pca.res$swap == 0,]
     dftemp = dftemp[sample(1:dim(dftemp)[1],25),]
     plotall(dftemp)
     
-    dftemp = df.pca.res[round(df.pca.res$PC1,0) == -1 &
-                          round(df.pca.res$PC2,0) == 0 &
+    dftemp = df.pca.res[df.pca.res$PC1 < -0.4 &
+                          df.pca.res$PC2 > -0.5 &
+                          df.pca.res$PC1 > -1.2 &
+                          df.pca.res$PC2 < 0.3 &
                           df.pca.res$swap == 0,]
     dftemp = dftemp[sample(1:dim(dftemp)[1],25),]
     plotall(dftemp)
     
-    dftemp = df.pca.res[round(df.pca.res$PC1,0) == 0 &
-                          round(df.pca.res$PC2,0) == 1 &
+    dftemp = df.pca.res[df.pca.res$PC1 > -0.4 &
+                          df.pca.res$PC2 > 0.3 &
+                          df.pca.res$PC1 < 0.4 &
                           df.pca.res$swap == 0,]
     dftemp = dftemp[sample(1:dim(dftemp)[1],25),]
     plotall(dftemp)

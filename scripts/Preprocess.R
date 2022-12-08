@@ -561,6 +561,6 @@ posture.organization <- function(){
     df.pca.res <- cbind(df.pca.combined, pl$x[,1:4])
   }
   
-  save(df.pca.res, file="data/df_pca.rda")
+  save(df.all, df.pca.res, file="data/df_pca.rda")
 }
 #------------------------------------------------------------------------------#
