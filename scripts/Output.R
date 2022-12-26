@@ -445,7 +445,9 @@ plot.PCA <- function(){
     geom_histogram(position  = "identity", alpha=0.4)+
     scale_fill_viridis(discrete = T, direction = 1, end=0.5)+
     theme_bw()
-  gridExtra::grid.arrange(g1,g2,g3,g4, ncol=1)
+  g <- gridExtra::grid.arrange(g1,g2,g3,g4, ncol=1)
+  ggsave(file.path("img/", paste0("PCA_each.pdf")),
+         width=5, height=6, plot = g)  
   
   # representative posture
   if(F){
