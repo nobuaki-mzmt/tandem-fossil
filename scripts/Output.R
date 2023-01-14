@@ -56,8 +56,8 @@ plot.trajectories <- function(){
   ggplot(df) +
     geom_path(aes(x=fx, y=fy, col=viridis(2)[1])) +
     geom_path(aes(x=mx, y=my, col=viridis(2)[2])) +
-    ylab("y (mm)") +
-    xlab("x (mm)") +
+    ylab("y (body length)") +
+    xlab("x (body length)") +
     theme_bw()+
     theme(aspect.ratio = 1, legend.position = "none") +
     theme(strip.text = element_text(size = 8, margin = margin()))+
@@ -197,7 +197,7 @@ compare.speed <- function(){
            color = "sex",
            line.color = "gray", line.size = 0.4,
            palette = "viridis",
-           ylab="Speed (mm/sec)")+
+           ylab="Speed (bodylength/sec)")+
     stat_compare_means(paired = TRUE)
   fname <- paste(odir, "speedComparison.pdf", sep = "")
   ggsave(fname, height = pdfHeight, width = pdfWidth)
@@ -400,8 +400,7 @@ Compare.traveled.dis <- function(){
     data.frame(id=df.pos$id, sex = "male", dis,  traveldis=mdis)
   )
   
-  BodyLength = 7.341955
-  df2 <- df[df$dis < BodyLength*2,]
+  df2 <- df[df$dis < 2,]
   dfsum <- tapply(df2$traveldis, df2[,1:2], sum, na.rm=T)
   print(t.test(dfsum[,1], dfsum[,2], paired=T))
   
@@ -412,10 +411,9 @@ Compare.traveled.dis <- function(){
 #------------------------------------------------------------------------------#
 plot.PCA <- function(){
   load("data/df_pca.rda")
-  
   ggplot(df.pca.res[df.pca.res$swap<2,],aes(x=PC1, y=PC2)) + 
-    stat_density_2d(geom = "polygon", 
-                    aes(alpha = ..level.., fill = as.factor(swap)))+
+    stat_density_2d(geom = "polygon",  aes(alpha = ..level.., 
+                    fill = as.factor(swap)))+
     scale_fill_viridis(discrete = T, direction = 1, end=0.5)+
     geom_point(data=df.pca.res[df.pca.res$swap==2,], aes(x=PC1, y=PC2))+
     scale_y_continuous(limits = c(-2,2))+
@@ -423,6 +421,7 @@ plot.PCA <- function(){
     coord_fixed()+
     theme(aspect.ratio = 1)+
     theme_bw()
+  
   ggsave(file.path("img/", paste0("PCA.pdf")),
          width=5, height=10)  
   
@@ -452,7 +451,7 @@ plot.PCA <- function(){
   # representative posture
   if(F){
     plotall <- function(dftemp){
-      par(mfrow=c(5,5), pin=c(2,2))
+      #par(mfrow=c(5,5), pin=c(2,2))
       expand = 10
       for(i in 1:dim(dftemp)[1]){
         dftempplot = subset(df.all, name == dftemp[i,1] & time == dftemp[i,2])
@@ -533,3 +532,78 @@ plot.PCA <- function(){
   print(Y)
 }
 #------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+regular.tandem.posture <- function(){
+  
+  load("data/Cf-control-sleap/rda/df_sleap_dis.rda")
+  load("data/df_pca.rda")
+  
+  df_sleap_dis = df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5, ]
+  
+  
+  dd <- rbind(df.pca.res[,3:18],df_sleap_dis[,3:18])
+  pl2 = prcomp(dd[,1:15], scale= F)
+  summary(pl)
+  
+  ddf <- cbind(dd, pl2$x[,1:4])
+  ddf
+  
+  ggplot() + 
+    stat_density_2d(data = ddf[ddf$swap<2,],aes(x=PC1, y=PC2, fill = "black", alpha = ..level..), geom = "polygon")+
+    scale_fill_viridis(discrete = T, direction = 1, end=1)+
+    geom_point(data=df.pca.res[df.pca.res$swap==2,], aes(x=PC1, y=PC2))+
+    scale_y_continuous(limits = c(-2,2))+
+    scale_x_continuous(limits = c(-2,2))+
+    coord_fixed()+
+    theme(aspect.ratio = 1)+
+    theme_bw()+
+    stat_density_2d(data = ddf[ddf$swap>2,],aes(x=PC1, y=PC2, fill = as.factor(swap-3), alpha = ..level..),
+                    geom = "polygon")
+  
+  
+  # plot posture
+  if(F){
+    i = 800
+    {
+      expand = 1
+      df_temp_f <- subset(df_all, id == id_list[1] & sex == "f")[i,]
+      df_temp_m <- subset(df_all, id == id_list[1] & sex == "m")[i,]
+      xrange = mean(as.numeric(c(df_temp_f[,c(2,4,6)],df_temp_m[,c(2,4,6)])))
+      yrange = mean(as.numeric(c(df_temp_f[,c(3,5,7)],df_temp_m[,c(3,5,7)])))
+      plot(0, pch="none", xlim=c(xrange-expand, xrange+expand), 
+           ylim=c(yrange-expand, yrange+expand), col="#58c8acff",)
+      dftempplot = as.numeric(c(df_temp_f[,c(2:7)], df_temp_m[,c(2:7)]))
+      draw.arrow = function(x1,y1, x2, y2){ 
+        arrows(dftempplot[x1-2], dftempplot[y1-2],
+               dftempplot[x2-2], dftempplot[y2-2], length=0)}
+      draw.arrow(3,4,5,6)
+      draw.arrow(5,6,7,8)
+      draw.arrow(9,10,11,12)
+      draw.arrow(11,12,13,14)
+      
+      draw.arrow(3,4,9,10)
+      draw.arrow(3,4,11,12)
+      draw.arrow(3,4,13,14)
+      
+      draw.arrow(5,6,9,10)
+      draw.arrow(5,6,11,12)
+      draw.arrow(5,6,13,14)
+      
+      draw.arrow(7,8,9,10)
+      draw.arrow(7,8,11,12)
+      draw.arrow(7,8,13,14)
+      
+      draw.arrow(5,6,7,8)
+      draw.arrow(9,10,11,12)
+      draw.arrow(11,12,13,14)
+      
+      points(dftempplot[3],dftempplot[4], col="#2c7dd3ff", pch=19)
+      points(dftempplot[1],dftempplot[2], col="#7009d3ff", pch=19)
+      points(dftempplot[5],dftempplot[6], col="#58c8acff", pch=19)
+      points(dftempplot[7],dftempplot[8], col="#8fb972ff", pch=19)
+      points(dftempplot[9],dftempplot[10], col="#b86d3bff", pch=19)
+      points(dftempplot[11],dftempplot[12], col="#d51315ff", pch=19)
+    }
+  }
+}

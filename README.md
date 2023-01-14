@@ -9,4 +9,4 @@ The all data will be uploaded in ZENODO: [![DOI](https://zenodo.org/badge/DOI/XX
 * [README](./README.md) - this file
 * [scripts](./scripts) - folder containing all script for the analysis
   * [Output.R](./scripts/Output.R) - Codes for outputting the results of movement analysis (figures, statistics, tables)
-  * [Preprocess.R](./scripts/Preprocess.R) - Codes for preprocessing data sets (run before Output.R)
+  * [Preprocess.R](./scripts/Preprocess.R) - Codes for pre-processing data sets (run before Output.R)

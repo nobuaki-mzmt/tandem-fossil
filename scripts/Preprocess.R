@@ -14,10 +14,6 @@ rm(list = ls())
   library(stringr)
   library(dlcpr)
   
-  ## constants
-  treat <- c("Cf-sticky", "Cf-control")
-  Max.sec <- 1800 # only focus on first 30 minutes or less
-  BodyLength = c(7.341955, 8.212211173) # sticky / control
   preprocessAll()
 }
 #------------------------------------------------------------------------------#
@@ -25,6 +21,7 @@ rm(list = ls())
 #------------------------------------------------------------------------------#
 preprocessAll <- function(){
   data.convert()
+  data.convert_sleap()
   get.spatial.organization()
   get.movement.speed()
   fossil.dataset()
@@ -33,21 +30,21 @@ preprocessAll <- function(){
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
-# This function read all csv files, and then
-# 1) scale from pixel to mm
+# This function read csv files for sticky trap and control, and then
+# 1) scale from pixel to bodylength
 # 2) save as rda
 #------------------------------------------------------------------------------#
 data.convert <- function(Plot=T, Dataframe = T){
   
+  Max.sec <- 1800 # only focus on first 30 minutes or less
+  
   ## file location
-  raw.place <- file.path("data/", treat, "/raw")
-  rda.place <- file.path("data/", treat, "/rda")
-  
-  ## metadata
-  load(file.path("data/d.meta.sticky.rda"))
-  d.meta.sticky <- d.meta.sticky[!is.na(d.meta.sticky$Fem.Enter.Trap),]
-  load(file.path("data/d.meta.control.rda"))
-  
+  raw.place <- file.path("data/", c("Cf-sticky", "Cf-control"))
+
+  ## body size data in pixel
+  ## scale all coordinate data in the unit of bodylength
+  d.scale = data.frame(fread("data/bodylength-in-pixel.csv", header=T))
+
   ## calculation
   df.pos <- data.frame()
   df.arrow <- data.frame()
@@ -67,31 +64,32 @@ data.convert <- function(Plot=T, Dataframe = T){
       # file info
       if(i == 1){ # sticky
         date = str_sub(position.data.name[v], start=1, end=6)
-        species = substr(position.data.name[v], 8, 9)
         rep = substr(position.data.name[v], 14, 15)
         event = substr(position.data.name[v], 17, 17) 
         if(event == "p"){ event = 1}
-        scale.value = d.meta.sticky[d.meta.sticky$Date == date & d.meta.sticky$Rep == as.numeric(rep), "Scale"]
+        d.scale.temp = subset(d.scale, Treat=="Sticky" & Date == date &
+                                Rep == as.numeric(rep) & Event == as.numeric(event))
         treat = "sticky"
-        name = paste(species,treat,date,rep,event, sep="-")
+        name = paste(treat,date,rep,event, sep="-")
       } else { # control
         id = str_sub(position.data.name[v], start=13, end=14)
-        species = substr(position.data.name[v], 1, 2)
-        scale.value = d.meta.control[d.meta.control$id == as.numeric(id), "scale"]
-        scale.value = 90/scale.value
+        d.scale.temp = subset(d.scale, Treat=="Control" & ID == as.numeric(id))
         treat = "control"
-        name = paste(species,treat,id, sep="-")
+        name = paste(treat,id, sep="-")
       }
       
+      bodylength = (d.scale.temp$Ind1 + d.scale.temp$Ind2)/2
+      fps = d.scale.temp$FPS
+        
       # data read and scale
       d.pos <- data.frame(fread(position.data[v], header=T))
       d.arrow <- data.frame(fread(arrow.data[v], header=T))
-      d.pos <- d.pos[d.pos$position%%30 == 0,]
-      d.arrow <- d.arrow[d.arrow$arrow%%30 == 0,]
+      d.pos <- d.pos[d.pos$position%%fps == 0,]
+      d.arrow <- d.arrow[d.arrow$arrow%%fps == 0,]
       
       video.length     <- dim(d.pos)
-      d.pos[,2:5]      <- d.pos[,2:5]   * as.numeric(scale.value)
-      d.arrow[,2:5]    <- d.arrow[,2:5] * as.numeric(scale.value)
+      d.pos[,2:5]      <- d.pos[,2:5]   / bodylength
+      d.arrow[,2:5]    <- d.arrow[,2:5] / bodylength
       d.arrow[,c(2,4)] <- d.arrow[,c(2,4)] - d.pos[1,2]
       d.arrow[,c(3,5)] <- d.arrow[,c(3,5)] - d.pos[1,3]
       d.pos[,c(2,4)]   <- d.pos[,c(2,4)]   - d.pos[1,2]
@@ -100,8 +98,8 @@ data.convert <- function(Plot=T, Dataframe = T){
       print(paste(v, "/", length(position.data), "->", name, "video.length", video.length[1]))
       
       # dataframe
-      d.pos[,1]   <- d.pos[,1]/30
-      d.arrow[,1] <- d.arrow[,1]/30
+      d.pos[,1]   <- d.pos[,1]/fps
+      d.arrow[,1] <- d.arrow[,1]/fps
       d.pos       <- d.pos[d.pos[,1] < min(Max.sec, max(d.pos[,1])),]
       d.arrow     <- d.arrow[d.arrow[,1] < min(Max.sec, max(d.arrow[,1])),]
       colnames(d.pos) = colnames(d.arrow) = c("time", "fx", "fy", "mx", "my")
@@ -118,6 +116,99 @@ data.convert <- function(Plot=T, Dataframe = T){
   }
   save(df.pos, file=file.path("data/df.pos.rda"))
   save(df.arrow, file=file.path("data/df.arrow.rda"))
+}
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+# This function read csv files for sleap results, and then
+# 1) scale from pixel to bodylength
+# 2) save as rda
+#------------------------------------------------------------------------------#
+data.convert_sleap <- function(){
+  csv_data <- list.files("data/Cf-control-sleap/csv", full.names = TRUE, pattern = ".csv")
+  f_names <- list.files("data/Cf-control-sleap/csv", full.names = FALSE, pattern = ".csv")
+  d.scale = data.frame(fread("data/bodylength-in-pixel.csv", header=T))
+  
+  df_all <- NULL
+  for(v in 1:length(csv_data)){
+    id = str_split(f_names[v], "_")[[1]][6]
+    sex = str_split(str_split(f_names[v], "_")[[1]][8], ".csv")[[1]][1]
+    d <- data.frame(fread(csv_data[v], header=T))
+    d$headtip_x = (d$headtip_x+d$pronotumfront_x)/2
+    d$headtip_y = (d$headtip_y+d$pronotumfront_y)/2
+    
+    d.scale.temp = subset(d.scale, Treat=="Control-SLEAP" & ID == as.numeric(id))
+    bodylength = (d.scale.temp$Ind1 + d.scale.temp$Ind2)/2
+    
+    d = d[seq(1,60*60*15,60),]
+    d$V1 = d$V1/60
+    colnames(d)[1] = "time"
+    
+    d[,2:7] = d[,2:7] / (bodylength)
+    
+    d$sex = sex
+    d$id = id
+    
+    df_all = rbind(df_all, d)
+  }
+  row.names(df_all) <- NULL
+  
+  # get pairwise distances
+  id_list = unique(df_all$id)
+  df = NULL
+  
+  for( i in id_list){
+    df_temp_f <- subset(df_all, id == i & sex == "f")
+    df_temp_m <- subset(df_all, id == i & sex == "m")
+    
+    df_temp = data.frame(i,
+                         df_temp_f[,c("time", "headtip_x", "headtip_y", "pronotumfront_x", "pronotumfront_y",
+                                      "abdomentip_x", "abdomentip_y")],
+                         df_temp_m[,c("headtip_x", "headtip_y", "pronotumfront_x", "pronotumfront_y",
+                                      "abdomentip_x", "abdomentip_y")])
+    
+    colnames(df_temp) = c("name", "time", 
+                          "fhead_x", "fhead_y",
+                          "fpron_x", "fpron_y",
+                          "ftip_x", "ftip_y",
+                          "mhead_x", "mhead_y",
+                          "mpron_x", "mpron_y", 
+                          "mtip_x", "mtip_y")
+    df = rbind(df, df_temp)
+  }
+  
+  for(i in seq(3,13,2)){
+    for(j in seq(3,13,2)){
+      if( i < j){
+        dis = sqrt( (df[,i] - df[,j])^2 +
+                      (df[,i+1] - df[,j+1])^2)
+        cname = paste( str_remove(colnames(df)[i], "_x"), 
+                       str_remove(colnames(df)[j], "_x"),
+                       sep="_")
+        df.temp = data.frame(dis)
+        colnames(df.temp) = cname
+        df = cbind(df, df.temp)
+      }
+    }
+  }
+  
+  df_sleap_dis <- na.omit(df)[c(1:2, 15:29)]
+  
+  # create surrogate data
+  swapname = str_replace_all(colnames(df_sleap_dis)[3:17], c("f"="z", "m" = "f", "z" = "m"))
+  revfm = str_detect(swapname, "m.*_f.*")
+  swapname[revfm] = paste(str_remove(str_extract(swapname[revfm], "_.*"), "_"),
+                          str_remove(str_extract(swapname[revfm], ".*_"), "_"),
+                          sep="_")
+  df_sleap_dis_swap = df_sleap_dis[,c("name","time", swapname)]
+  colnames(df_sleap_dis_swap) = colnames(df_sleap_dis)
+  
+  df_sleap_dis$swap = 3
+  df_sleap_dis_swap$swap = 4
+  df_sleap_dis = rbind(df_sleap_dis,df_sleap_dis_swap)
+  
+  f.name = "data/Cf-control-sleap/rda/df_sleap_dis.rda"
+  save(df_sleap_dis, file = f.name)
 }
 #------------------------------------------------------------------------------#
 
@@ -184,21 +275,17 @@ get.spatial.organization <- function(){
     df.temp3 <- data.frame(
       relative.direction = abs(atan2(df.temp1$rpy, df.temp1$rpx)), 
       relative.orientation = abs(orient.diff),
-      dis = dis/BodyLength[1], 
-      treat="sticky", direction = "FtoM", time=df.pos$time, id=df.pos$id
+      dis, treat="sticky", direction = "FtoM", time=df.pos$time, id=df.pos$id
       )
     
     df.temp4 <- data.frame(
       relative.direction = abs(atan2(df.temp2$rpy, df.temp2$rpx)), 
       relative.orientation = abs(orient.diff),
-      dis = dis/BodyLength[1], 
-      treat="sticky", direction = "MtoF", time=df.pos$time, id=df.pos$id
+      dis, treat="sticky", direction = "MtoF", time=df.pos$time, id=df.pos$id
       )
     
     df.plot.sticky <- rbind(df.temp1, df.temp2)
     df.orient.sticky <- rbind(df.temp3, df.temp4)
-    df.plot.sticky[,c("dis","rpx", "rpy")] <- 
-      df.plot.sticky[,c("dis","rpx", "rpy")]/BodyLength[1]
   }
   
   ## Surrogate data (sticky trap)
@@ -278,19 +365,15 @@ get.spatial.organization <- function(){
       df.temp3 <- data.frame(
         relative.direction = abs(atan2(df.temp1$rpy, df.temp1$rpx)), 
         relative.orientation = abs(orient.diff),
-        dis = dis/BodyLength[1], 
-        treat="surrogate", direction = "FtoM", time=NA, id=NA
+        dis, treat="surrogate", direction = "FtoM", time=NA, id=NA
         )
       
       df.temp4 <- data.frame(
         relative.direction = abs(atan2(df.temp2$rpy, df.temp2$rpx)), 
         relative.orientation = abs(orient.diff),
-        dis = dis/BodyLength[1], 
-        treat="surrogate", direction = "MtoF", time=NA, id=NA)
+        dis = dis, treat="surrogate", direction = "MtoF", time=NA, id=NA)
       df.orient <- rbind(df.orient, df.temp3, df.temp4)
     }
-    
-    df.plot[,c("dis","rpx", "rpy")] <- df.plot[,c("dis","rpx", "rpy")]/BodyLength[1]
     
     df.plot.surrogate <- df.plot
     df.orient.surrogate <- df.orient
@@ -324,8 +407,6 @@ get.spatial.organization <- function(){
                                  time=df.pos$time, id=df.pos$id)
     
     df.plot.control <- rbind(df.temp1, df.temp2)
-    df.plot.control[,c("dis","rpx", "rpy")] <- 
-      df.plot.control[,c("dis","rpx", "rpy")]/BodyLength[2]
     
     # Orientation
     f.orient = atan2(df.arrow$fy - df.pos$fy,  df.arrow$fx - df.pos$fx)
@@ -337,13 +418,11 @@ get.spatial.organization <- function(){
     df.temp3 <- data.frame(
       relative.direction = abs(atan2(df.temp1$rpy, df.temp1$rpx)),
       relative.orientation = abs(orient.diff),
-      dis = dis/BodyLength[2],
-      treat="control", direction = "FtoM", time=df.pos$time, id=df.pos$id)
+      dis = dis, treat="control", direction = "FtoM", time=df.pos$time, id=df.pos$id)
     df.temp4 <- data.frame(
       relative.direction = abs(atan2(df.temp2$rpy, df.temp2$rpx)), 
       relative.orientation = abs(orient.diff),
-      dis = dis/BodyLength[2],
-      treat="control", direction = "MtoF", time=df.pos$time, id=df.pos$id)
+      dis = dis, treat="control", direction = "MtoF", time=df.pos$time, id=df.pos$id)
     
     df.orient.control <- rbind(df.temp3, df.temp4)
     
@@ -421,19 +500,16 @@ get.movement.speed <- function(){
 # This function process data from the fossil
 #------------------------------------------------------------------------------#
 fossil.dataset <- function(){
-  scale <- 5/436.508
-  BodyLength <- c(477.172, 328.093+247.348) * scale ## male, female
-  fhead.to.mabdomen.fossil = 70.406 * scale
-  mhead.to.fabdomen.fossil = 389.604 * scale
-  
+  BodyLength <- c(469.3591375, 570.0614226)  ## male, female
+
   mbd <- mean(BodyLength) 
-  Position.x <- c(1069.665, 799.07) * scale
-  Position.y <- c(489.159, 435.622) * scale
+  Position.x <- c(1069.665, 799.07) 
+  Position.y <- c(489.159, 435.622) 
   Angle <- c(-78.148, 55.486)/180*pi
   
   d.fossil <- data.frame(parts = c("fhead", "fpron", "ftip", "mhead", "mpron", "mtip"),
-                         x = c(945, 893.495, 725.443, 1112.353, 1109.422, 1012.694),
-                         y = c(275, 284.797, 679.522, 677.568, 622.854, 256.462) )
+                         x = c(950, 902, 723, 1119, 1109, 1016),
+                         y = c(274, 297, 683, 670, 622, 258) )
   df.all.fossil = NULL
   for(i in 1:6){
     for(j in 1:6){
@@ -447,7 +523,6 @@ fossil.dataset <- function(){
     }
   }
   
-  df.all.fossil = df.all.fossil * scale
   df.all.fossil = df.all.fossil / mean(BodyLength)
   save(df.all.fossil, file="data/df_fossil.rda")
 }
@@ -464,8 +539,9 @@ posture.organization <- function(){
   rawdataDLC = list.files(idir, full.names = T)
   data.name  = list.files(idir, full.names = F)
   
-  load(file.path("data/d.meta.sticky.rda"))
-  d.meta.sticky <- d.meta.sticky[!is.na(d.meta.sticky$Fem.Enter.Trap),]
+  ## body size data in pixel
+  ## scale all coordinate data in the unit of bodylength
+  d.scale = data.frame(fread("data/bodylength-in-pixel.csv", header=T))
   
   # data from observations
   {
@@ -479,8 +555,13 @@ posture.organization <- function(){
       species   = "Cf"
       rep       = substr (data.name[j], 14, 15)
       event     = substr (data.name[j], 17, 17) 
-      scale.value = d.meta.sticky[d.meta.sticky$Date == date &
-                                    d.meta.sticky$Rep == as.numeric(rep), "Scale"][1]
+      if(event == "c"){
+        event = 1
+      }
+      
+      d.scale.temp = subset(d.scale, Treat=="Sticky-DLC" & Date == date &
+                              Rep == as.numeric(rep) & Event == as.numeric(event))
+      
       treat = "sticky"
       name = paste(species,treat,date,rep,event, sep="-")
       print(name)
@@ -497,7 +578,8 @@ posture.organization <- function(){
                        "mhead_x", "mhead_y",
                        "mpron_x", "mpron_y", 
                        "mtip_x", "mtip_y")
-      df[,3:14] <- df[,3:14] * as.numeric(scale.value)
+      df[,3:14] <- df[,3:14] / ((d.scale.temp$Ind1 + d.scale.temp$Ind2)/2)
+      df = df[df$time%%1 == 0,]
       
       df.all <- rbind(df.all, df)
     }
@@ -518,8 +600,6 @@ posture.organization <- function(){
     }
     
     #df.all = df.all[df.all$time%%1 == 0,]
-    df.all[,15:29] <- df.all[,15:29] / BodyLength[1]
-    
     
     df.pca <- na.omit(df.all)[c(1:2, 15:29)]
     
@@ -561,6 +641,6 @@ posture.organization <- function(){
     df.pca.res <- cbind(df.pca.combined, pl$x[,1:4])
   }
   
-  save(df.all, df.pca.res, file="data/df_pca.rda")
+  save(pl, df.all, df.pca.res, file="data/df_pca.rda")
 }
 #------------------------------------------------------------------------------#
