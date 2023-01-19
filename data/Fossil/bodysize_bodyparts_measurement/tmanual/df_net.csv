@@ -1,0 +1,5 @@
+serial,id,name,edge_from,edge_to,edge_len
+0,Measurement,Measurement_0.jpg,t0000_0,no002_0,39.0
+0,Measurement,Measurement_0.jpg,no002_0,no003_0,52.0
+0,Measurement,Measurement_0.jpg,no003_0,no004_0,479.0
+0,Measurement,Measurement_0.jpg,t0001_0,no007_0,467.0
