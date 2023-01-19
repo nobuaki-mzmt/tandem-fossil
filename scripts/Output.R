@@ -211,14 +211,20 @@ compare.speed <- function(){
 plot.relative.pos <- function(){
   plot.range = 1.5
   load("data/dplot_relativepos.rda")
+  load("data/df_fossil.rda")
+  df.relative.fossil <- data.frame(
+    direction = c("FtoM", "MtoF"),
+    rx = c(df.center.fossil[1,2] - df.center.fossil[2,2],
+           df.center.fossil[2,2] - df.center.fossil[1,2]),
+    ry = c(df.center.fossil[1,3] - df.center.fossil[2,3],
+           df.center.fossil[2,3] - df.center.fossil[1,3])
+  )
   
   # Sticky surface
   ggplot(df.plot.relative.pos[df.plot.relative.pos$treat=="sticky",],
          aes(rpy,rpx)) + 
-    #stat_bin_hex(bins=50) +
-    #geom_pointdensity(adjust=0.05, size=0.5)+
-    #stat_density_2d_filled()+
-    stat_density_2d(aes(fill = stat(level)), geom="polygon", contour = TRUE, bins=7, col=1)+    scale_fill_viridis() +
+    stat_density_2d(aes(fill = stat(level)), geom="polygon", contour = TRUE, bins=7, col=1)+
+    scale_fill_viridis() +
     scale_x_continuous(expand = c(0, 0.05), limits = c(-plot.range, plot.range)) +
     scale_y_continuous(expand = c(0, 0.05), limits = c(-plot.range, plot.range)) +
     theme_bw() +
@@ -226,7 +232,9 @@ plot.relative.pos <- function(){
     #scale_color_viridis() +
     xlab("Distance left-right (body length)") +
     ylab("Distance back-front (body length)") +
-    facet_grid(~direction)
+    facet_grid(~direction)+
+    geom_point(data = df.relative.fossil, aes(x = rx, y = ry, col="red"))
+  
   ggsave(filename = paste0("img/RelativeDensity-Sticky.pdf"),
          width=6, height = 4, family="PT Sans")
   
@@ -267,6 +275,9 @@ plot.relative.pos <- function(){
 #------------------------------------------------------------------------------#
 plot.interindividual.distance <- function(){
   load("data/dplot_relativepos.rda")
+  load("data/df_fossil.rda")
+  
+  fossil_dis = sqrt(diff(df.center.fossil[,2])^2+diff(df.center.fossil[,3])^2)
   
   ## Distance
   ggplot(df.plot.relative.pos, aes(x=dis,fill=treat)) + 
@@ -276,7 +287,9 @@ plot.interindividual.distance <- function(){
     theme_bw() +
     theme(aspect.ratio = 1) +
     xlab("Distance (body length)")+
-    ylab("Density")
+    ylab("Density")+
+    geom_vline(xintercept = fossil_dis)
+  
   ggsave(filename = paste0("img/RelativeDistance.pdf"),
          width=4, height = 4, family="PT Sans")
   
@@ -568,3 +581,4 @@ regular.tandem.posture <- function(){
   }
 }
 #------------------------------------------------------------------------------#
+

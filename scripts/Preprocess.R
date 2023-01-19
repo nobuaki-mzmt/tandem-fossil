@@ -505,6 +505,13 @@ fossil.dataset <- function(){
   Position.y <- c(489.159, 435.622) 
   Angle <- c(-78.148, 55.486)/180*pi
   
+  df.center.fossil <- data.frame(
+    sex = c("male", "female"),
+    x = c(1069.665, 799.07)/mbd,
+    y = c(489.159, 435.622)/mbd,
+    angle = c(-78.148, 55.486)/180*pi
+  )
+  
   d.fossil <- data.frame(parts = c("fhead", "fpron", "ftip", "mhead", "mpron", "mtip"),
                          x = c(950, 902, 723, 1119, 1109, 1016),
                          y = c(274, 297, 683, 670, 622, 258) )
@@ -522,7 +529,7 @@ fossil.dataset <- function(){
   }
   
   df.all.fossil = df.all.fossil / mean(BodyLength)
-  save(df.all.fossil, file="data/df_fossil.rda")
+  save(df.center.fossil, df.all.fossil, file="data/df_fossil.rda")
 }
 #------------------------------------------------------------------------------#
 
