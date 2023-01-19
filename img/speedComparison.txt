@@ -1,0 +1,24 @@
+--Speed comparison between treatments--
+*pool sexes
+Mean speed
+   control     sticky 
+1.99362146 0.05641054 
+SD speed
+   control     sticky 
+0.51085684 0.02482311 
+
+	Wilcoxon rank sum test with continuity correction
+
+data:  df.speed[df.speed$treat == "sticky", "speed"] and df.speed[df.speed$treat == "control", "speed"]
+W = 0, p-value < 2.2e-16
+alternative hypothesis: true location shift is not equal to 0
+
+
+-- Comparison between sexes on Sticky trap
+
+	Wilcoxon signed rank exact test
+
+data:  df.speed[df.speed$treat == "sticky" & df.speed$sex == "female", "speed"] and df.speed[df.speed$treat == "sticky" & df.speed$sex == "male", "speed"]
+V = 52, p-value = 0.001044
+alternative hypothesis: true location shift is not equal to 0
+

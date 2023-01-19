@@ -1,0 +1,38 @@
+
+----10 min----
+     0   both female   male 
+     2     17      4      3 
+
+----20 min----
+     0   both female   male 
+     3     14      4      5 
+
+----30 min----
+     0   both female   male 
+     7      9      3      5 
+
+----Survival analysis----
+Cox mixed effect model
+> m <- coxme(Surv(duration, cens) ~ sex + (1|ID), data = d.surv)
+> summary(m)
+Cox mixed-effects model fit by maximum likelihood
+  Data: d.surv
+  events, n = 22, 52
+  Iterations= 5 24 
+                   NULL Integrated    Fitted
+Log-likelihood -81.7026  -81.00655 -74.60537
+
+                  Chisq   df        p   AIC   BIC
+Integrated loglik  1.39 2.00 0.498550 -2.61 -4.79
+ Penalized loglik 14.19 6.86 0.044468  0.48 -7.01
+
+Model:  Surv(duration, cens) ~ sex + (1 | ID) 
+Fixed coefficients
+              coef exp(coef)  se(coef)     z    p
+sexmale -0.2009459 0.8179567 0.4343965 -0.46 0.64
+
+Random effects
+ Group Variable  Std Dev   Variance 
+ ID    Intercept 0.6567957 0.4313805
+> Anova(m)
+Chisq = 0.2139861 Df = 1 P = 0.6436609 

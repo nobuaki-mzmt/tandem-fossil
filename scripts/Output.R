@@ -8,46 +8,44 @@
 #------------------------------------------------------------------------------#
 
 rm(list = ls())
+outputAll()
 
 #---------------------------------------------------------------------------#
 {
-  ## packages
-  {
-    library(ggplot2)
-    library(viridis)
-    
-    library(MASS)
-    
-    library(exactRankTests)
-    library("survminer")
-    library(survival)
-    library(coxme)
-    library(car)
-    
-    library(extrafont)
-    #font_import(pattern="PT") # for running for the first time
-    loadfonts()
-  }
+  library(ggplot2)
+  library(viridis)
   
+  library(MASS)
+  
+  library(exactRankTests)
+  library("survminer")
+  library(survival)
+  library(coxme)
+  library(car)
+  
+  library(extrafont)
+  #font_import(pattern="PT") # for running for the first time
+  loadfonts()
+
   ## constants
-  {
-    pdfHeight  <- 7 
-    pdfWidth   <- 10
-  }
-  
-  outputAll()
+  pdfHeight  <- 7 
+  pdfWidth   <- 10
 }
 #---------------------------------------------------------------------------#
 
+#---------------------------------------------------------------------------#
 outputAll <- function(){
   plot.trajectories()
   show.escapeEvents()
   compare.speed()
-  plot.relative.pos(plot.range = 1.5)
+  plot.relative.pos()
   plot.interindividual.distance()
   plot.angle.diff()
-  display.fossil.info()
+  Compare.traveled.dis()
+  plot.PCA()
+  regular.tandem.posture()
 }
+#---------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
 plot.trajectories <- function(){
@@ -75,94 +73,97 @@ plot.trajectories <- function(){
 
 #------------------------------------------------------------------------------#
 show.escapeEvents<-function(){
-  odir = "img/"
-  load("data/d.meta.sticky.rda")
-  d.meta.sticky$Tandem.enter
-  d.meta.sticky <- d.meta.sticky[!is.na(d.meta.sticky$Trap.10min),]
+
+  d.trap.obs <- data.frame(fread("data/SticklyTrapObservationNote.csv", header=T))
+  d.trap.obs$Tandem.enter
+  d.trap.obs <- d.trap.obs[!is.na(d.trap.obs$Trap.10min),]
   
-  fname <- paste(odir, "countEscapeEvents.txt", sep = "")
-  sink(fname)
+  # Survival plot
   {
-    # 10 min
-    cat("\n----10 min----")
-    print(table(d.meta.sticky$Trap.10min))
-    
-    # 20 min
-    cat("\n----20 min----")
-    print(table(d.meta.sticky$Trap.20min))
-    
-    # 30 min
-    cat("\n----30 min----")
-    print(table(d.meta.sticky$Trap.30min))
-  }
-  
-  
-  # reorganize data for plot
-  {
-    l = dim(d.meta.sticky)[1]
-    f = f.cens = m = m.cens = rep(0, l)
-    for(i in 1:l){
-      d.temp <- d.meta.sticky[i,]
-      
-      # female
-      if       (d.temp$Trap.10min == 0 || d.temp$Trap.10min == "male"){
-        f[i] = 0 ; f.cens[i] = 1;
-      } else if(d.temp$Trap.20min == 0 || d.temp$Trap.20min == "male"){
-        f[i] = 10; f.cens[i] = 1;
-      } else if(is.na(d.temp$Trap.30min)){
-        f[i] = 20; f.cens[i] = 0;
-      } else if(d.temp$Trap.30min == 0 || d.temp$Trap.10min == "male"){
-        f[i] = 20; f.cens[i] = 1;
-      } else {
-        f[i] = 30; f.cens[i] = 0;
-      }
-      
-      # male
-      if       (d.temp$Trap.10min == 0 || d.temp$Trap.10min == "female"){
-        m[i] = 0 ; m.cens[i] = 1;
-      } else if(d.temp$Trap.20min == 0 || d.temp$Trap.20min == "female"){
-        m[i] = 10; m.cens[i] = 1;
-      } else if(is.na(d.temp$Trap.30min)){
-        m[i] = 20; m.cens[i] = 0;
-      } else if(d.temp$Trap.30min == 0 || d.temp$Trap.10min == "female"){
-        m[i] = 20; m.cens[i] = 1;
-      } else {
+    # reorganize data for plot
+    {
+      l = dim(d.trap.obs)[1]
+      f = f.cens = m = m.cens = rep(0, l)
+      for(i in 1:l){
+        d.temp <- d.trap.obs[i,]
+        
+        # female
+        if       (d.temp$Trap.10min == 0 || d.temp$Trap.10min == "male"){
+          f[i] = 0 ; f.cens[i] = 1;
+        } else if(d.temp$Trap.20min == 0 || d.temp$Trap.20min == "male"){
+          f[i] = 10; f.cens[i] = 1;
+        } else if(is.na(d.temp$Trap.30min)){
+          f[i] = 20; f.cens[i] = 0;
+        } else if(d.temp$Trap.30min == 0 || d.temp$Trap.10min == "male"){
+          f[i] = 20; f.cens[i] = 1;
+        } else {
+          f[i] = 30; f.cens[i] = 0;
+        }
+        
+        # male
+        if       (d.temp$Trap.10min == 0 || d.temp$Trap.10min == "female"){
+          m[i] = 0 ; m.cens[i] = 1;
+        } else if(d.temp$Trap.20min == 0 || d.temp$Trap.20min == "female"){
+          m[i] = 10; m.cens[i] = 1;
+        } else if(is.na(d.temp$Trap.30min)){
+          m[i] = 20; m.cens[i] = 0;
+        } else if(d.temp$Trap.30min == 0 || d.temp$Trap.10min == "female"){
+          m[i] = 20; m.cens[i] = 1;
+        } else {
           m[i] = 30; m.cens[i] = 0;
+        }
       }
-    }
-    d.surv <- rbind(
-      data.frame(
-        d.meta.sticky[,1:4],
-        sex = "Female",
-        duration = f,
-        cens = f.cens
-      ),
-      data.frame(
-        d.meta.sticky[,1:4],
-        sex = "male",
-        duration = m,
-        cens = m.cens
+      d.surv <- rbind(
+        data.frame(
+          d.trap.obs[,1:4],
+          sex = "Female",
+          duration = f,
+          cens = f.cens
+        ),
+        data.frame(
+          d.trap.obs[,1:4],
+          sex = "male",
+          duration = m,
+          cens = m.cens
+        )
       )
-    )
+    }
+    
+    df<-survfit(Surv(duration,cens)~sex, type = "kaplan-meier", data=d.surv)
+    ggsurvplot(fit = df, data = d.surv,
+               pval = F, pval.method = TRUE,
+               risk.table = F, conf.int = FALSE,
+               ncensor.plot = FALSE, size = 1, linetype = 1:3,
+               xlab="Time (min)", ggtheme = theme_bw()  + theme(aspect.ratio = 0.75))
   }
   
-  df<-survfit(Surv(duration,cens)~sex, type = "kaplan-meier", data=d.surv)
-  ggsurvplot(fit = df, data = d.surv,
-             pval = F, pval.method = TRUE,
-             risk.table = F, conf.int = FALSE,
-             ncensor.plot = FALSE, size = 1, linetype = 1:3,
-             xlab="Time (min)", ggtheme = theme_bw()  + theme(aspect.ratio = 0.75))
-  
-  cat("\n----Survival analysis----\n")
-  cat("Cox mixed effect model\n")
-  cat("> m <- coxme(Surv(duration, cens) ~ sex + (1|ID), data = d.surv)\n")
-  m <- coxme(Surv(duration, cens) ~ sex + (1|ID), data = d.surv)
-  cat("> summary(m)\n")
-  summary(m)
-  cat("> Anova(m)\n")
-  res = Anova(m)
-  cat("Chisq =", res$Chisq, "Df =", res$Df, "P =", res$`Pr(>Chisq)`, "\n")
-  sink()
+  # Output results as text file
+  {
+    fname <- paste("img/countEscapeEvents.txt", sep = "")
+    sink(fname)
+    {
+      cat("\n----10 min----")
+      print(table(d.trap.obs$Trap.10min))
+      
+      cat("\n----20 min----")
+      print(table(d.trap.obs$Trap.20min))
+      
+      cat("\n----30 min----")
+      print(table(d.trap.obs$Trap.30min))
+    }
+    
+    
+    cat("\n----Survival analysis----\n")
+    cat("Cox mixed effect model\n")
+    cat("> m <- coxme(Surv(duration, cens) ~ sex + (1|ID), data = d.surv)\n")
+    m <- coxme(Surv(duration, cens) ~ sex + (1|ID), data = d.surv)
+    cat("> summary(m)\n")
+    summary(m)
+    cat("> Anova(m)\n")
+    res = Anova(m)
+    cat("Chisq =", res$Chisq, "Df =", res$Df, "P =", res$`Pr(>Chisq)`, "\n")
+    sink()
+  }
 }
 #------------------------------------------------------------------------------#
 
@@ -207,7 +208,8 @@ compare.speed <- function(){
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
-plot.relative.pos <- function(plot.range = 1.2){
+plot.relative.pos <- function(){
+  plot.range = 1.5
   load("data/dplot_relativepos.rda")
   
   # Sticky surface
@@ -334,50 +336,10 @@ plot.angle.diff <- function(){
 #------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
-display.fossil.info <- function(){
-  scale <- 5/436.508
-  BodyLength <- c(477.172, 328.093+247.348) * scale ## male, female
-  fhead.to.mabdomen.fossil = 70.406 * scale
-  mhead.to.fabdomen.fossil = 389.604 * scale
-  
-  mbd <- mean(BodyLength) 
-  Position.x <- c(1069.665, 799.07) * scale
-  Position.y <- c(489.159, 435.622) * scale
-  Angle <- c(-78.148, 55.486)/180*pi
-  
-  plot(Position.x, Position.y, xlim=c(5,15), ylim=c(0,10))
-  arrows(Position.x, Position.y, Position.x+cos(Angle), Position.y+sin(Angle))
-  
-  rx <- rev(Position.x) -  Position.x
-  ry <- rev(Position.y) -  Position.y
-  
-  rp <- atan2(ry, rx)
-  
-  rpa <- rp-Angle
-  
-  dis <- sqrt(rx^2 + ry^2)
-  rpx <- cos(rpa)*dis
-  rpy <- sin(rpa)*dis
-  
-  print("relative x")
-  print(rx/mbd)
-  print("relative y")
-  print(ry/mbd)
-  
-  print("distance")
-  print(dis / mbd)
-  
-  print("angle diff")
-  print(abs(diff(Angle)))
-  
-}
-#------------------------------------------------------------------------------#
-
-#------------------------------------------------------------------------------#
 Compare.traveled.dis <- function(){
-  odir = "img/"
-  fname <- paste(odir, "TraveledDistance.txt", sep = "")
-  sink(fname)
+  load("data/df.pos.rda")
+  
+  sink("img/TraveledDistance.txt")
   
   # comparison of traveled distance
   print("comparison of traveled distance")
@@ -522,8 +484,8 @@ plot.PCA <- function(){
   # Linear Discriminant Analysis 
   train.data = df.pca.res[df.pca.res$swap < 2, 18:22]
   (Z<- lda(swap~ .,data=train.data))
-  table(train.data[,1],predict(Z)$class)
-  (9201*2)/(14191*2+9201*2)
+  sum.table = table(train.data[,1],predict(Z)$class)
+  (sum.table[1,2]*2) / ((sum.table[1,2]*2)+(sum.table[1,1]*2))
   
   test.data = df.pca.res[df.pca.res$swap == 2, 18:22]
   Y<-predict(Z,test.data)
@@ -544,11 +506,9 @@ regular.tandem.posture <- function(){
   
   dd <- rbind(df.pca.res[,3:18],df_sleap_dis[,3:18])
   pl2 = prcomp(dd[,1:15], scale= F)
-  summary(pl)
-  
+
   ddf <- cbind(dd, pl2$x[,1:4])
-  ddf
-  
+
   ggplot() + 
     stat_density_2d(data = ddf[ddf$swap<2,],aes(x=PC1, y=PC2, fill = "black", alpha = ..level..), geom = "polygon")+
     scale_fill_viridis(discrete = T, direction = 1, end=1)+
@@ -560,7 +520,7 @@ regular.tandem.posture <- function(){
     theme_bw()+
     stat_density_2d(data = ddf[ddf$swap>2,],aes(x=PC1, y=PC2, fill = as.factor(swap-3), alpha = ..level..),
                     geom = "polygon")
-  
+  ggsave(file.path("img/PCA_w_regular.pdf"), width=5, height=10) 
   
   # plot posture
   if(F){
@@ -607,3 +567,4 @@ regular.tandem.posture <- function(){
     }
   }
 }
+#------------------------------------------------------------------------------#
