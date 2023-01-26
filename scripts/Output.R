@@ -334,13 +334,9 @@ plot.angle.diff <- function(){
   df.temp <- subset(df.temp, dis < 2)
   df.temp$anglediff[df.temp$anglediff > pi] = df.temp$anglediff[df.temp$anglediff > pi] - (2*pi)
   df.temp$anglediff = abs(df.temp$anglediff)
-  df <- na.omit(
-    rbind(data.frame(treat = "control", anglediff = tapply(df.temp$anglediff, df.temp[,c("id", "treat")], mean)[,1]),
-          data.frame(treat = "sticky", anglediff = tapply(df.temp$anglediff, df.temp[,c("id", "treat")], mean)[,2])))
-  r <- wilcox.exact(anglediff~treat, data=df, paired=F)
-  cat("---Compare the distance between control and sticky---\n")
-  cat("---Exact Wilcoxon rank sum test---\n")
-  cat(paste("W=",r$statistic, "P=", r$p.value, "\n"))
+
+  ks.test(df.temp[df.temp$treat=="sticky","anglediff"], 
+          df.temp[df.temp$treat=="control","anglediff"])
   
   ks.test(df.temp[df.temp$treat=="sticky","anglediff"], 
                df.temp[df.temp$treat=="surrogate","anglediff"])
@@ -403,22 +399,22 @@ plot.PCA <- function(){
   g1 <- ggplot(df.pca.res[df.pca.res$swap<2,],aes(x=PC1, fill=as.factor(swap))) + 
     geom_histogram(position  = "identity", alpha=0.4)+
     scale_fill_viridis(discrete = T, direction = 1, end=0.5)+
-    theme_bw()
+    theme_classic()
   
   g2 <- ggplot(df.pca.res[df.pca.res$swap<2,],aes(x=PC2, fill=as.factor(swap))) + 
     geom_histogram(position  = "identity", alpha=0.4)+
     scale_fill_viridis(discrete = T, direction = 1, end=0.5)+
-    theme_bw()
+    theme_classic()
   
   g3 <- ggplot(df.pca.res[df.pca.res$swap<2,],aes(x=PC3, fill=as.factor(swap))) + 
     geom_histogram(position  = "identity", alpha=0.4)+
     scale_fill_viridis(discrete = T, direction = 1, end=0.5)+
-    theme_bw()
+    theme_classic()
   
   g4 <- ggplot(df.pca.res[df.pca.res$swap<2,],aes(x=PC4, fill=as.factor(swap))) + 
     geom_histogram(position  = "identity", alpha=0.4)+
     scale_fill_viridis(discrete = T, direction = 1, end=0.5)+
-    theme_bw()
+    theme_classic()
   g <- gridExtra::grid.arrange(g1,g2,g3,g4, ncol=1)
   ggsave(file.path("img/", paste0("PCA_each.pdf")),
          width=5, height=6, plot = g)  
@@ -523,15 +519,15 @@ regular.tandem.posture <- function(){
   ddf <- cbind(dd, pl2$x[,1:4])
 
   ggplot() + 
-    stat_density_2d(data = ddf[ddf$swap<2,],aes(x=PC1, y=PC2, fill = "black", alpha = ..level..), geom = "polygon")+
+    stat_density_2d(data = ddf[ddf$swap<2,],aes(x=PC1, y=PC2, fill = as.factor(swap), alpha = ..level..), geom = "polygon")+
     scale_fill_viridis(discrete = T, direction = 1, end=1)+
     geom_point(data=df.pca.res[df.pca.res$swap==2,], aes(x=PC1, y=PC2))+
     scale_y_continuous(limits = c(-2,2))+
     scale_x_continuous(limits = c(-2,2))+
     coord_fixed()+
     theme(aspect.ratio = 1)+
-    theme_bw()+
-    stat_density_2d(data = ddf[ddf$swap>2,],aes(x=PC1, y=PC2, fill = as.factor(swap-3), alpha = ..level..),
+    theme_classic()+
+    stat_density_2d(data = ddf[ddf$swap>2,],aes(x=PC1, y=PC2, fill = as.factor(swap), alpha = ..level..),
                     geom = "polygon")
   ggsave(file.path("img/PCA_w_regular.pdf"), width=5, height=10) 
   
