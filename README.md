@@ -1,9 +1,11 @@
+# README
+
 This repository provides access to the data and source code used for the manuscript
 **Extinct and extant termites reveal the fidelity of behavior fossilization in amber**
 Nobuaki Mizumoto, Simon Hellemans, Michael S Engel, Thomas Bourguignon, Aleš Buček
 
 Preprint is available at bioRxiv 
-The all data will be uploaded in ZENODO: [![DOI](https://zenodo.org/badge/DOI/XXXDOIXXX.svg)](https://doi.org/XXXDOIXXX)
+The all data will be uploaded in ZENODO upon acceptance: [![DOI](https://zenodo.org/badge/DOI/XXXDOIXXX.svg)](https://doi.org/XXXDOIXXX)
 
 
 ## Table of Contents
@@ -21,8 +23,6 @@ The all data will be uploaded in ZENODO: [![DOI](https://zenodo.org/badge/DOI/XX
   * [Fossil](./data/Fossil)
   * [bodysize_measurement](./data/bodysize_measurement)
   
-
-## Usage notes
 
 ## Session information
 ```
