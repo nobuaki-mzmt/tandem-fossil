@@ -640,12 +640,15 @@ posture.organization <- function(){
       df.pca.combined,
       df.fossil
     )
-    pl = prcomp(df.pca.combined[,3:17], scale= F)
+    #pl = prcomp(df.pca.combined[,3:17], scale= F)
+    # only use fhead_mpron, fpron_mhead, fhead_mtip, ftip_mhead, fpron_mtip, ftip_mpron
+    pl = prcomp(df.pca.combined[,c(6,7,9,11,12,13)], scale= F) 
     summary(pl)
     
     df.pca.res <- cbind(df.pca.combined, pl$x[,1:4])
   }
   
-  save(pl, df.all, df.pca.res, file="data/df_pca.rda")
+  save(pl, df.all, df.pca.res, df.pca.combined, file="data/df_pca.rda")
 }
 #------------------------------------------------------------------------------#
+
