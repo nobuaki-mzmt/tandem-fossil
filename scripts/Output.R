@@ -44,6 +44,7 @@ outputAll <- function(){
   Compare.traveled.dis()
   plot.PCA()
   regular.tandem.posture()
+  head.tip.dis()
 }
 #---------------------------------------------------------------------------#
 
@@ -387,14 +388,11 @@ plot.PCA <- function(){
                     fill = as.factor(swap)))+
     scale_fill_viridis(discrete = T, direction = 1, end=0.5)+
     geom_point(data=df.pca.res[df.pca.res$swap==2,], aes(x=PC1, y=PC2))+
-    scale_y_continuous(limits = c(-2,2))+
-    scale_x_continuous(limits = c(-2,2))+
-    coord_fixed()+
+    coord_fixed(ylim = c(-1,1), xlim = c(-2,2)) +
     theme(aspect.ratio = 1)+
-    theme_bw()
-  
+    theme_classic()
   ggsave(file.path("img/", paste0("PCA.pdf")),
-         width=5, height=10)  
+         width=10, height=5)  
   
   g1 <- ggplot(df.pca.res[df.pca.res$swap<2,],aes(x=PC1, fill=as.factor(swap))) + 
     geom_histogram(position  = "identity", alpha=0.4)+
@@ -489,18 +487,38 @@ plot.PCA <- function(){
     plotall(dftemp)
   }
     
-  
   # Linear Discriminant Analysis 
-  train.data = df.pca.res[df.pca.res$swap < 2, 18:22]
+  train.data = df.pca.combined[df.pca.combined$swap < 2, 
+                               c("fhead_mtip", "ftip_mhead", 
+                                 "fpron_mtip", "ftip_mpron",
+                                 "fhead_mpron", "fpron_mhead", "swap")]
   (Z<- lda(swap~ .,data=train.data))
   sum.table = table(train.data[,1],predict(Z)$class)
   (sum.table[1,2]*2) / ((sum.table[1,2]*2)+(sum.table[1,1]*2))
   
-  test.data = df.pca.res[df.pca.res$swap == 2, 18:22]
+  test.data = df.pca.combined[df.pca.combined$swap == 2,
+                              c("fhead_mtip", "ftip_mhead",
+                                "fpron_mtip", "ftip_mpron", 
+                                "fhead_mpron", "fpron_mhead", "swap")]
   Y<-predict(Z,test.data)
   table(test.data[,1],Y$class)
   print("Linear Discriminant Analysis ")
   print(Y)
+  
+  # LDA with only head-tip data
+  train.data = df.pca.combined[df.pca.combined$swap < 2, 
+                               c("fhead_mtip", "ftip_mhead", "swap")]
+  (Z<- lda(swap~ .,data=train.data))
+  sum.table = table(train.data[,1],predict(Z)$class)
+  (sum.table[1,2]*2) / ((sum.table[1,2]*2)+(sum.table[1,1]*2))
+  
+  test.data = df.pca.combined[df.pca.combined$swap == 2, 
+                              c("fhead_mtip", "ftip_mhead", "swap")]
+  Y<-predict(Z,test.data)
+  table(test.data[,1],Y$class)
+  print("Linear Discriminant Analysis ")
+  print(Y)
+  
 }
 #------------------------------------------------------------------------------#
 
@@ -513,68 +531,95 @@ regular.tandem.posture <- function(){
   df_sleap_dis = df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5, ]
   
   
-  dd <- rbind(df.pca.res[,3:18],df_sleap_dis[,3:18])
-  pl2 = prcomp(dd[,1:15], scale= F)
+  dd <- rbind(df.pca.res[,c(6,7,9,11,12,13,18)],
+              df_sleap_dis[,c(6,7,9,11,12,13,18)])
+  pl2 = prcomp(dd[,1:6], scale= F)
 
   ddf <- cbind(dd, pl2$x[,1:4])
 
   ggplot() + 
-    stat_density_2d(data = ddf[ddf$swap<2,],aes(x=PC1, y=PC2, fill = as.factor(swap), alpha = ..level..), geom = "polygon")+
+    stat_density_2d(data = ddf[ddf$swap<2,],
+                    aes(x=PC1, y=PC2, fill = as.factor(swap), 
+                        alpha = ..level..), geom = "polygon")+
     scale_fill_viridis(discrete = T, direction = 1, end=1)+
     geom_point(data=df.pca.res[df.pca.res$swap==2,], aes(x=PC1, y=PC2))+
-    scale_y_continuous(limits = c(-2,2))+
-    scale_x_continuous(limits = c(-2,2))+
-    coord_fixed()+
+    coord_fixed(xlim=c(-2,2), ylim=c(-1,1))+
     theme(aspect.ratio = 1)+
     theme_classic()+
-    stat_density_2d(data = ddf[ddf$swap>2,],aes(x=PC1, y=PC2, fill = as.factor(swap), alpha = ..level..),
+    stat_density_2d(data = ddf[ddf$swap>2,],
+                    aes(x=PC1, y=PC2, fill = as.factor(swap),
+                        alpha = ..level..),
                     geom = "polygon")
   ggsave(file.path("img/PCA_w_regular.pdf"), width=5, height=10) 
-  
-  # plot posture
-  if(F){
-    i = 800
-    {
-      expand = 1
-      df_temp_f <- subset(df_all, id == id_list[1] & sex == "f")[i,]
-      df_temp_m <- subset(df_all, id == id_list[1] & sex == "m")[i,]
-      xrange = mean(as.numeric(c(df_temp_f[,c(2,4,6)],df_temp_m[,c(2,4,6)])))
-      yrange = mean(as.numeric(c(df_temp_f[,c(3,5,7)],df_temp_m[,c(3,5,7)])))
-      plot(0, pch="none", xlim=c(xrange-expand, xrange+expand), 
-           ylim=c(yrange-expand, yrange+expand), col="#58c8acff",)
-      dftempplot = as.numeric(c(df_temp_f[,c(2:7)], df_temp_m[,c(2:7)]))
-      draw.arrow = function(x1,y1, x2, y2){ 
-        arrows(dftempplot[x1-2], dftempplot[y1-2],
-               dftempplot[x2-2], dftempplot[y2-2], length=0)}
-      draw.arrow(3,4,5,6)
-      draw.arrow(5,6,7,8)
-      draw.arrow(9,10,11,12)
-      draw.arrow(11,12,13,14)
-      
-      draw.arrow(3,4,9,10)
-      draw.arrow(3,4,11,12)
-      draw.arrow(3,4,13,14)
-      
-      draw.arrow(5,6,9,10)
-      draw.arrow(5,6,11,12)
-      draw.arrow(5,6,13,14)
-      
-      draw.arrow(7,8,9,10)
-      draw.arrow(7,8,11,12)
-      draw.arrow(7,8,13,14)
-      
-      draw.arrow(5,6,7,8)
-      draw.arrow(9,10,11,12)
-      draw.arrow(11,12,13,14)
-      
-      points(dftempplot[3],dftempplot[4], col="#2c7dd3ff", pch=19)
-      points(dftempplot[1],dftempplot[2], col="#7009d3ff", pch=19)
-      points(dftempplot[5],dftempplot[6], col="#58c8acff", pch=19)
-      points(dftempplot[7],dftempplot[8], col="#8fb972ff", pch=19)
-      points(dftempplot[9],dftempplot[10], col="#b86d3bff", pch=19)
-      points(dftempplot[11],dftempplot[12], col="#d51315ff", pch=19)
-    }
-  }
 }
 #------------------------------------------------------------------------------#
 
+#------------------------------------------------------------------------------#
+head.tip.dis <- function(){
+  load("data/df_pca.rda")
+  load("data/Cf-control-sleap/rda/df_sleap_dis.rda")
+  
+  ## trapped tandem
+  ggplot(df.pca.combined[df.pca.combined$swap < 2 & df.pca.combined$fhead_mhead < 1.5,], 
+         aes(x=ftip_mhead, fill=as.factor(swap)))+
+    geom_density(alpha=0.4)+
+    scale_fill_viridis(discrete=T, end=0.5)+
+    theme_classic()+
+    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"ftip_mhead"])+
+    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"fhead_mtip"])+
+    xlim(c(0,2.5))+
+    theme(legend.position = "none")
+  ggsave(file.path("img/", paste0("Head-Tip_dis_trap.pdf")),
+         width=4, height=3)  
+  
+  ggplot(df.pca.combined[df.pca.combined$swap < 2 & df.pca.combined$fhead_mhead < 1.5,], 
+         aes(x=fhead_mpron, fill=as.factor(swap)))+
+    geom_density(alpha=0.4)+
+    scale_fill_viridis(discrete=T, end=0.5)+
+    theme_classic()+
+    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"fhead_mpron"])+
+    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"fpron_mhead"])+
+    xlim(c(0,2.5))+
+    theme(legend.position = "none")
+  
+  ggplot(df.pca.combined[df.pca.combined$swap < 2 & df.pca.combined$fhead_mhead < 1.5,], 
+         aes(x=fpron_mtip, fill=as.factor(swap)))+
+    geom_density(alpha=0.4)+
+    scale_fill_viridis(discrete=T, end=0.5)+
+    theme_classic()+
+    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"fpron_mtip"])+
+    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"ftip_mpron"])+
+    xlim(c(0,2.5))+
+    theme(legend.position = "none")
+  
+  ## regular tandem
+  # focus on the time when the distance between female head and male head < 1.5 body length
+  ggplot(df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5,], 
+         aes(x=ftip_mhead, fill=as.factor(swap)))+
+    geom_density(alpha=0.4)+
+    scale_fill_viridis(discrete=T, end=0.5)+
+    theme_classic()+
+    xlim(c(0,2.5))+
+    theme(legend.position = "none")
+  ggsave(file.path("img/", paste0("Head-Tip_dis_regular.pdf")),
+         width=4, height=3)  
+  
+  ggplot(df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5,], 
+         aes(x=ftip_mpron, fill=as.factor(swap)))+
+    geom_density(alpha=0.4)+
+    scale_fill_viridis(discrete=T, end=0.5)+
+    theme_classic()+
+    xlim(c(0,2.5))+
+    theme(legend.position = "none")
+  
+  ggplot(df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5,], 
+         aes(x=fpron_mhead, fill=as.factor(swap)))+
+    geom_density(alpha=0.4)+
+    scale_fill_viridis(discrete=T, end=0.5)+
+    theme_classic()+
+    xlim(c(0,2.5))+
+    theme(legend.position = "none")
+}
+#------------------------------------------------------------------------------#
+  
+  
