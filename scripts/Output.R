@@ -382,17 +382,18 @@ Compare.traveled.dis <- function(){
 
 #------------------------------------------------------------------------------#
 plot.PCA <- function(){
+  # NOTE: the results relating to PCA was removed during revision.
   load("data/df_pca.rda")
   ggplot(df.pca.res[df.pca.res$swap<2,],aes(x=PC1, y=PC2)) + 
     stat_density_2d(geom = "polygon",  aes(alpha = ..level.., 
                     fill = as.factor(swap)))+
     scale_fill_viridis(discrete = T, direction = 1, end=0.5)+
     geom_point(data=df.pca.res[df.pca.res$swap==2,], aes(x=PC1, y=PC2))+
-    coord_fixed(ylim = c(-1,1), xlim = c(-2,2)) +
+    coord_fixed(ylim = c(-1,1), xlim = c(-2,2), expand = F) +
     theme(aspect.ratio = 1)+
     theme_classic()
   ggsave(file.path("img/", paste0("PCA.pdf")),
-         width=10, height=5)  
+         width=7, height=10)  
   
   g1 <- ggplot(df.pca.res[df.pca.res$swap<2,],aes(x=PC1, fill=as.factor(swap))) + 
     geom_histogram(position  = "identity", alpha=0.4)+
@@ -438,19 +439,19 @@ plot.PCA <- function(){
         draw.arrow(9,10,11,12)
         draw.arrow(11,12,13,14)
         
-        draw.arrow(3,4,9,10)
-        draw.arrow(3,4,11,12)
-        draw.arrow(3,4,13,14)
+        #draw.arrow(3,4,9,10)
+        #draw.arrow(3,4,11,12)
+        #draw.arrow(3,4,13,14)
 
-        draw.arrow(5,6,9,10)
-        draw.arrow(5,6,11,12)
-        draw.arrow(5,6,13,14)
+        #draw.arrow(5,6,9,10)
+        #draw.arrow(5,6,11,12)
+        #draw.arrow(5,6,13,14)
         
-        draw.arrow(7,8,9,10)
-        draw.arrow(7,8,11,12)
-        draw.arrow(7,8,13,14)
+        #draw.arrow(7,8,9,10)
+        #draw.arrow(7,8,11,12)
+        #draw.arrow(7,8,13,14)
         
-        draw.arrow(5,6,7,8)
+        #draw.arrow(5,6,7,8)
         draw.arrow(9,10,11,12)
         draw.arrow(11,12,13,14)
         
@@ -465,13 +466,13 @@ plot.PCA <- function(){
     }
     
     set.seed(2)
-    dftemp = df.pca.res[df.pca.res$PC1 < -1.2 &
-                          df.pca.res$PC2 < -0.5 &
+    dftemp = df.pca.res[df.pca.res$PC1 < -1 &
+                          df.pca.res$PC2 < -0.3 &
                           df.pca.res$swap == 0,]
     dftemp = dftemp[sample(1:dim(dftemp)[1],25),]
     plotall(dftemp)
-    
-    dftemp = df.pca.res[df.pca.res$PC1 < -0.4 &
+     
+    dftemp = df.pca.res[df.pca.res$PC1 < -0.8 &
                           df.pca.res$PC2 > -0.5 &
                           df.pca.res$PC1 > -1.2 &
                           df.pca.res$PC2 < 0.3 &
@@ -479,22 +480,88 @@ plot.PCA <- function(){
     dftemp = dftemp[sample(1:dim(dftemp)[1],25),]
     plotall(dftemp)
     
-    dftemp = df.pca.res[df.pca.res$PC1 > -0.4 &
-                          df.pca.res$PC2 > 0.3 &
-                          df.pca.res$PC1 < 0.4 &
+    dftemp = df.pca.res[df.pca.res$PC1 < -0.4 &
+                          df.pca.res$PC1 > -0.8 &
                           df.pca.res$swap == 0,]
     dftemp = dftemp[sample(1:dim(dftemp)[1],25),]
     plotall(dftemp)
-  }
     
+    dftemp = df.pca.res[df.pca.res$PC1 > -0.02 &
+                          df.pca.res$PC1 < 0.02 &
+                          df.pca.res$swap == 0,]
+    dftemp = dftemp[sample(1:dim(dftemp)[1],25),]
+    plotall(dftemp)
+    
+    # a
+    dftemp = df.pca.res[round(df.pca.res$PC1,2) == -1.60 & 
+                          round(df.pca.res$PC2,2) == -0.58,]
+    plotall(dftemp)
+    
+    # b
+    dftemp = df.pca.res[round(df.pca.res$PC1,2) == -1.14 &
+                        round(df.pca.res$PC2,2) == -0.32,]
+    plotall(dftemp)
+    
+    # c (-0.61, -0.01)
+    dftemp = df.pca.res[round(df.pca.res$PC1,2) == -0.61 &
+                          round(df.pca.res$PC2,2) == -0.01,]
+    plotall(dftemp)
+    
+    # d
+    dftemp = df.pca.res[round(df.pca.res$PC1,2) == 0 &
+                          round(df.pca.res$PC2,2) == 0.52,]
+    plotall(dftemp)
+    
+    # e
+    dftemp = df.pca.res[round(df.pca.res$PC1,2) == -0.01 &
+                          round(df.pca.res$PC2,2) == 0.13,]
+    plotall(dftemp)
+    
+    d.example = data.frame(PC1 = c(-1.60, -1.14, -0.61, 0, -0.01),
+               PC2 = c(-0.58, -0.32, -0.01, 0.52, 0.13))
+    ggplot(df.pca.res[df.pca.res$swap<2,],aes(x=PC1, y=PC2)) + 
+      stat_density_2d(geom = "polygon",  aes(alpha = ..level.., 
+                                             fill = as.factor(swap)))+
+      scale_fill_viridis(discrete = T, direction = 1, end=0.5)+
+      geom_point(data=df.pca.res[df.pca.res$swap==2,], aes(x=PC1, y=PC2))+
+      coord_fixed(ylim = c(-1,1), xlim = c(-2,2), expand = F) +
+      theme(aspect.ratio = 1)+
+      theme_classic()+
+      geom_point(data = d.example, aes(x = PC1, y = PC2), pch=2)
+    
+    
+  }
+}
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+plot.LDA <- function(){
+  load("data/df_pca.rda")
+  
   # Linear Discriminant Analysis 
   train.data = df.pca.combined[df.pca.combined$swap < 2, 
                                c("fhead_mtip", "ftip_mhead", 
                                  "fpron_mtip", "ftip_mpron",
                                  "fhead_mpron", "fpron_mhead", "swap")]
   (Z<- lda(swap~ .,data=train.data))
-  sum.table = table(train.data[,1],predict(Z)$class)
-  (sum.table[1,2]*2) / ((sum.table[1,2]*2)+(sum.table[1,1]*2))
+  
+  p <- predict(Z, train.data)
+  mean(p$class==train.data$swap)
+  
+  df.lda <- data.frame(
+    train.data[,1:6],
+    datasets = train.data$swap,
+    lda_class = p$class,
+    p$x,
+    correct = (p$class == train.data$swap),
+    female_prob = p$posterior[,1]
+  )
+  
+  max(subset(df.lda, female_prob > 0.8)$LD1)
+  max(subset(df.lda, female_prob > 0.6)$LD1)
+  max(subset(df.lda, female_prob > 0.4)$LD1)
+  max(subset(df.lda, female_prob > 0.2)$LD1)
+  
   
   test.data = df.pca.combined[df.pca.combined$swap == 2,
                               c("fhead_mtip", "ftip_mhead",
@@ -504,6 +571,40 @@ plot.PCA <- function(){
   table(test.data[,1],Y$class)
   print("Linear Discriminant Analysis ")
   print(Y)
+  
+  
+  ggplot(df.lda, aes(x=LD1, fill=as.factor(correct), col=as.factor(datasets)))+
+    geom_histogram(binwidth=0.05, alpha=0.5)+
+    scale_color_viridis(discrete=T, end = 0.5)+
+    scale_fill_viridis(discrete = T, option = "A", direction = -1) +
+    coord_cartesian(xlim = c(-3.5,3.5), expand = T) +
+    theme_classic()+
+    facet_grid(datasets ~ .)+
+    geom_vline(data=data.frame(Y$x), aes(xintercept = LD1), color = "red")+
+    geom_vline(data=data.frame(LD1 = c(-2.40, -1.514, -0.4429, 0.4429, 1.514, 2.40)),
+               aes(xintercept = LD1), color = "grey")+
+    theme(legend.position = "bottom")
+  ggsave(file.path("img/", paste0("LDA.pdf")), width=7, height=4)  
+  
+  # representative posture
+  #a
+  df.lda["14634",]
+  df.all["14634",]
+  
+  #b
+  df.lda["251113",]
+  
+  # c
+  df.lda["26869",]
+  plotall(df.pca.res["26869",])
+  # d
+  df.lda["17011",]
+  plotall(df.pca.res["17011",])
+  # e
+  df.lda["3816101",]
+  
+  # f
+  df.lda["2716141",]
   
   # LDA with only head-tip data
   train.data = df.pca.combined[df.pca.combined$swap < 2, 
@@ -518,9 +619,7 @@ plot.PCA <- function(){
   table(test.data[,1],Y$class)
   print("Linear Discriminant Analysis ")
   print(Y)
-  
 }
-#------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
 regular.tandem.posture <- function(){
@@ -530,6 +629,13 @@ regular.tandem.posture <- function(){
   
   df_sleap_dis = df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5, ]
   
+  test.data = df_sleap_dis[df_sleap_dis$swap == 3, 
+                           c("fhead_mtip", "ftip_mhead",
+                             "fpron_mtip", "ftip_mpron", 
+                             "fhead_mpron", "fpron_mhead", "swap")]
+  Y<-predict(Z,test.data)
+  table(test.data[,1],Y$class)
+  table(Y$class == 0)
   
   dd <- rbind(df.pca.res[,c(6,7,9,11,12,13,18)],
               df_sleap_dis[,c(6,7,9,11,12,13,18)])
@@ -572,6 +678,11 @@ head.tip.dis <- function(){
   ggsave(file.path("img/", paste0("Head-Tip_dis_trap.pdf")),
          width=4, height=3)  
   
+  dftemp = df.pca.combined[df.pca.combined$swap == 0 & df.pca.combined$fhead_mhead < 1.5,]
+  t.test(dftemp$fhead_mtip, dftemp$ftip_mhead, paired=T)
+  
+  sum(dftemp$fhead_mtip < dftemp$ftip_mhead) / dim(dftemp)[1]
+  
   ggplot(df.pca.combined[df.pca.combined$swap < 2 & df.pca.combined$fhead_mhead < 1.5,], 
          aes(x=fhead_mpron, fill=as.factor(swap)))+
     geom_density(alpha=0.4)+
@@ -603,6 +714,9 @@ head.tip.dis <- function(){
     theme(legend.position = "none")
   ggsave(file.path("img/", paste0("Head-Tip_dis_regular.pdf")),
          width=4, height=3)  
+  
+  dftemp = df_sleap_dis[df_sleap_dis$swap == 3 & df_sleap_dis$fhead_mhead < 1.5,]
+  sum(dftemp$fhead_mtip > dftemp$ftip_mhead) / dim(dftemp)[1]
   
   ggplot(df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5,], 
          aes(x=ftip_mpron, fill=as.factor(swap)))+
