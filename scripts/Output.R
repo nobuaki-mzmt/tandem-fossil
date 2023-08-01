@@ -567,6 +567,7 @@ plot.LDA <- function(){
                               c("fhead_mtip", "ftip_mhead",
                                 "fpron_mtip", "ftip_mpron", 
                                 "fhead_mpron", "fpron_mhead", "swap")]
+  
   Y<-predict(Z,test.data)
   table(test.data[,1],Y$class)
   print("Linear Discriminant Analysis ")
@@ -591,20 +592,28 @@ plot.LDA <- function(){
   df.lda["14634",]
   df.all["14634",]
   
+  df.lda["15134",]
+  df.all["15134",]
+  plotall(df.pca.res["15134",])
+  
   #b
   df.lda["251113",]
   
   # c
   df.lda["26869",]
   plotall(df.pca.res["26869",])
+  
   # d
   df.lda["17011",]
   plotall(df.pca.res["17011",])
+  
   # e
   df.lda["3816101",]
+  plotall(df.pca.res["3816101",])
   
   # f
   df.lda["2716141",]
+  plotall(df.pca.res["2716141",])
   
   # LDA with only head-tip data
   train.data = df.pca.combined[df.pca.combined$swap < 2, 
@@ -620,6 +629,7 @@ plot.LDA <- function(){
   print("Linear Discriminant Analysis ")
   print(Y)
 }
+#------------------------------------------------------------------------------#
 
 #------------------------------------------------------------------------------#
 regular.tandem.posture <- function(){
@@ -657,6 +667,46 @@ regular.tandem.posture <- function(){
                         alpha = ..level..),
                     geom = "polygon")
   ggsave(file.path("img/PCA_w_regular.pdf"), width=5, height=10) 
+  
+  ## LDA only with regular tandem data
+  train.data = df_sleap_dis[c("fhead_mtip", "ftip_mhead", 
+                              "fpron_mtip", "ftip_mpron",
+                              "fhead_mpron", "fpron_mhead", "swap")]
+  
+  (Z<- lda(swap~ .,data=train.data))
+  
+  p <- predict(Z, train.data)
+  mean(p$class==train.data$swap)
+  
+  df.lda <- data.frame(
+    train.data[,1:6],
+    datasets = train.data$swap,
+    lda_class = p$class,
+    p$x,
+    correct = (p$class == train.data$swap),
+    female_prob = p$posterior[,1]
+  )
+  
+  
+  test.data = df.pca.combined[df.pca.combined$swap == 2,
+                              c("fhead_mtip", "ftip_mhead",
+                                "fpron_mtip", "ftip_mpron", 
+                                "fhead_mpron", "fpron_mhead", "swap")]
+  Y<-predict(Z,test.data)
+  table(test.data[,1],Y$class)
+  print("Linear Discriminant Analysis ")
+  print(Y)
+  
+  
+  ggplot(df.lda, aes(x=LD1, fill=as.factor(correct), col=as.factor(datasets)))+
+    geom_histogram(binwidth=0.05, alpha=0.5)+
+    scale_color_viridis(discrete=T, end = 0.5)+
+    scale_fill_viridis(discrete = T, option = "A", direction = -1) +
+    coord_cartesian(xlim = c(-8,8), expand = T) +
+    theme_classic()+
+    facet_grid(datasets ~ .)+
+    theme(legend.position = "bottom")
+  ggsave(file.path("img/", paste0("LDA-regular.pdf")), width=7, height=4)  
 }
 #------------------------------------------------------------------------------#
 
