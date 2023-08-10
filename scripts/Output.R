@@ -562,6 +562,13 @@ plot.LDA <- function(){
   max(subset(df.lda, female_prob > 0.4)$LD1)
   max(subset(df.lda, female_prob > 0.2)$LD1)
   
+  df.lda.original = df.lda[df.lda$datasets == 0,]
+  sum(df.lda.original$female_prob > 0.4 & df.lda.original$female_prob < 0.6) / dim(df.lda.original)
+  sum(df.lda.original$female_prob < 0.4) / dim(df.lda.original)
+  sum(df.lda.original$female_prob > 0.6) / dim(df.lda.original)
+  
+  sum(df.lda$female_prob < 0.4) / dim(df.lda)
+  sum(df.lda$female_prob > 0.6) / dim(df.lda)
   
   test.data = df.pca.combined[df.pca.combined$swap == 2,
                               c("fhead_mtip", "ftip_mhead",
@@ -573,19 +580,16 @@ plot.LDA <- function(){
   print("Linear Discriminant Analysis ")
   print(Y)
   
-  
-  ggplot(df.lda, aes(x=LD1, fill=as.factor(correct), col=as.factor(datasets)))+
-    geom_histogram(binwidth=0.05, alpha=0.5)+
-    scale_color_viridis(discrete=T, end = 0.5)+
-    scale_fill_viridis(discrete = T, option = "A", direction = -1) +
-    coord_cartesian(xlim = c(-3.5,3.5), expand = T) +
+  ggplot(df.lda, aes(x=female_prob, col=as.factor(datasets), fill=as.factor(datasets)))+
+    geom_step(stat="bin", binwidth=0.01, alpha=0.8, position = "identity")+
+    scale_color_viridis(discrete = T, end = 0.5)+
+    scale_fill_viridis(discrete = T, end=0.5) +
+    coord_cartesian(xlim = c(0,1), expand = T) +
     theme_classic()+
-    facet_grid(datasets ~ .)+
-    geom_vline(data=data.frame(Y$x), aes(xintercept = LD1), color = "red")+
-    geom_vline(data=data.frame(LD1 = c(-2.40, -1.514, -0.4429, 0.4429, 1.514, 2.40)),
-               aes(xintercept = LD1), color = "grey")+
+    #facet_grid(datasets ~ .)+
+    geom_vline(data=data.frame(Y$posterior), aes(xintercept = X1), color = "red")+
     theme(legend.position = "bottom")
-  ggsave(file.path("img/", paste0("LDA.pdf")), width=7, height=4)  
+  ggsave(file.path("img/", paste0("LDA6.pdf")), width=7, height=4)  
   
   # representative posture
   #a
