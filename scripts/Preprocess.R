@@ -160,9 +160,11 @@ data.convert_sleap <- function(){
     df_temp_m <- subset(df_all, id == i & sex == "m")
     
     df_temp = data.frame(i,
-                         df_temp_f[,c("time", "headtip_x", "headtip_y", "pronotumfront_x", "pronotumfront_y",
+                         df_temp_f[,c("time", "headtip_x", "headtip_y", 
+                                      "pronotumfront_x", "pronotumfront_y",
                                       "abdomentip_x", "abdomentip_y")],
-                         df_temp_m[,c("headtip_x", "headtip_y", "pronotumfront_x", "pronotumfront_y",
+                         df_temp_m[,c("headtip_x", "headtip_y", 
+                                      "pronotumfront_x", "pronotumfront_y",
                                       "abdomentip_x", "abdomentip_y")])
     
     colnames(df_temp) = c("name", "time", 
@@ -191,19 +193,6 @@ data.convert_sleap <- function(){
   }
   
   df_sleap_dis <- na.omit(df)[c(1:2, 15:29)]
-  
-  # create surrogate data
-  swapname = str_replace_all(colnames(df_sleap_dis)[3:17], c("f"="z", "m" = "f", "z" = "m"))
-  revfm = str_detect(swapname, "m.*_f.*")
-  swapname[revfm] = paste(str_remove(str_extract(swapname[revfm], "_.*"), "_"),
-                          str_remove(str_extract(swapname[revfm], ".*_"), "_"),
-                          sep="_")
-  df_sleap_dis_swap = df_sleap_dis[,c("name","time", swapname)]
-  colnames(df_sleap_dis_swap) = colnames(df_sleap_dis)
-  
-  df_sleap_dis$swap = 3
-  df_sleap_dis_swap$swap = 4
-  df_sleap_dis = rbind(df_sleap_dis,df_sleap_dis_swap)
   
   f.name = "data/Cf-control-sleap/rda/df_sleap_dis.rda"
   save(df_sleap_dis, file = f.name)
@@ -286,97 +275,6 @@ get.spatial.organization <- function(){
     df.orient.sticky <- rbind(df.temp3, df.temp4)
   }
   
-  ## Surrogate data (sticky trap)
-  {
-    load("data/df.pos.rda")
-    load("data/df.arrow.rda")
-    df.pos <- df.pos[df.pos$treat=="sticky",]
-    df.arrow <- df.arrow[df.arrow$treat=="sticky",]
-    
-    iteration = 1000
-    set.seed(1) 
-    fem.random <- sample(1:24, iteration, replace=T)
-    set.seed(2) 
-    mal.random <- sample(1:24, iteration, replace=T)
-    set.seed(3) 
-    direction <- runif(iteration, 0, 1)*pi*2
-    
-    videos <- unique(df.pos$id)
-    df.plot = df.orient <- data.frame()
-    for(i in 1:iteration){
-      print(paste(i, "/", iteration))
-      f.df.pos <- df.pos[df.pos$id == fem.random[i],]
-      m.df.pos <- df.pos[df.pos$id == mal.random[i],]
-      f.df.arrow <- df.arrow[df.arrow$id == fem.random[i],]
-      m.df.arrow <- df.arrow[df.arrow$id == mal.random[i],]
-      
-      cut.dim <- min(dim(f.df.pos)[1],   dim(m.df.pos)[1],
-                     dim(f.df.arrow)[1], dim(m.df.arrow)[1])
-      f.df.pos <- f.df.pos[1:cut.dim,]
-      m.df.pos <- m.df.pos[1:cut.dim,]
-      f.df.arrow <- f.df.arrow[1:cut.dim,]
-      m.df.arrow <- m.df.arrow[1:cut.dim,]
-      
-      fx <- f.df.pos$fx
-      fy <- f.df.pos$fy
-      
-      dis <- sqrt(f.df.pos$mx[1]^2+f.df.pos$my[1]^2)
-      
-      mx <- m.df.pos$mx - m.df.pos$mx[1] + cos(direction[i])*dis
-      my <- m.df.pos$my - m.df.pos$my[1] + sin(direction[i])*dis
-      
-      fax <- f.df.arrow$fx
-      fay <- f.df.arrow$fy
-      max <- m.df.arrow$mx - m.df.pos$mx[1] + cos(direction[i])*dis
-      may <- m.df.arrow$my - m.df.pos$my[1] + sin(direction[i])*dis
-      
-      ax <- fax - fx
-      ay <- fay - fy
-      rx <- mx - fx
-      ry <- my - fy
-      df.temp1 <- get.relative.pos(ax, ay, rx, ry, 
-                                   treat="surrogate", direction = "FtoM", 
-                                   time=NA, id=NA)
-      
-      ax <- max - mx
-      ay <- may - my
-      rx <- fx - mx
-      ry <- fy - my
-      df.temp2 <- get.relative.pos(ax, ay, rx, ry, 
-                                   treat="surrogate", direction = "MtoF", 
-                                   time=NA, id=NA)
-      
-      df.plot <- rbind(df.plot, df.temp1, df.temp2)
-      
-      
-      # Orientation
-      f.orient = atan2(fay - fy,  fax - fx)
-      m.orient = atan2(may - my,  max - mx)
-      orient.diff = m.orient - f.orient
-      orient.diff[orient.diff > pi] = orient.diff[orient.diff > pi] - 2*pi
-      orient.diff[orient.diff < -pi] = orient.diff[orient.diff < -pi] + 2*pi
-      
-      # others
-      dis = sqrt(rx^2+ry^2)
-      
-      # output
-      df.temp3 <- data.frame(
-        relative.direction = abs(atan2(df.temp1$rpy, df.temp1$rpx)), 
-        relative.orientation = abs(orient.diff),
-        dis, treat="surrogate", direction = "FtoM", time=NA, id=NA
-        )
-      
-      df.temp4 <- data.frame(
-        relative.direction = abs(atan2(df.temp2$rpy, df.temp2$rpx)), 
-        relative.orientation = abs(orient.diff),
-        dis = dis, treat="surrogate", direction = "MtoF", time=NA, id=NA)
-      df.orient <- rbind(df.orient, df.temp3, df.temp4)
-    }
-    
-    df.plot.surrogate <- df.plot
-    df.orient.surrogate <- df.orient
-  }
-  
   ## Original data (control tandem)
   {
     load("data/df.pos.rda")
@@ -428,9 +326,9 @@ get.spatial.organization <- function(){
   
   
   df.plot.relative.pos <- 
-    rbind(df.plot.sticky, df.plot.control, df.plot.surrogate)
+    rbind(df.plot.sticky, df.plot.control)
   df.plot.relative.orient <- 
-    rbind(df.orient.sticky, df.orient.control, df.orient.surrogate)
+    rbind(df.orient.sticky, df.orient.control)
   save(df.plot.relative.pos, file="data/dplot_relativepos.rda")
   save(df.plot.relative.orient, file="data/dplot_relativeorient.rda")
 }
@@ -536,7 +434,7 @@ fossil.dataset <- function(){
 #------------------------------------------------------------------------------#
 # This function read all csv files for DLC, and then
 # 1. measure the distance between all body parts.
-# 2. create surrogate datasets and integrate with fossil data
+# 2. integrate with fossil data
 # 3. perform PCA
 #------------------------------------------------------------------------------#
 posture.organization <- function(){
@@ -589,63 +487,70 @@ posture.organization <- function(){
       df.all <- rbind(df.all, df)
     }
     
-    for(i in seq(3,13,2)){
-      for(j in seq(3,13,2)){
-        if( i < j){
-          dis = sqrt( (df.all[,i] - df.all[,j])^2 +
-                        (df.all[,i+1] - df.all[,j+1])^2)
-          cname = paste( str_remove(colnames(df)[i], "_x"), 
-                         str_remove(colnames(df)[j], "_x"),
-                         sep="_")
-          df.temp = data.frame(dis)
-          colnames(df.temp) = cname
-          df.all = cbind(df.all, df.temp)
-        }
-      }
+    df.relative_female = df.all[,1:2]
+    df.relative_female = cbind(df.relative_female, relative="relative_leader")
+    for(i in seq(9,13,2)){
+      dis = sqrt( (df.all[,i] - df.all[,3])^2 +
+                    (df.all[,i+1] - df.all[,3+1])^2)
+      cname = paste( str_remove(colnames(df)[3], "_x"), 
+                     str_remove(colnames(df)[i], "_x"),
+                     sep="_")
+      df.temp = data.frame(dis)
+      colnames(df.temp) = c(cname)
+      df.relative_female = cbind(df.relative_female, df.temp)
+    }
+
+    df.relative_male = df.all[,1:2]
+    df.relative_male = cbind(df.relative_male, relative="relative_follower")
+    for(i in seq(3,7,2)){
+      dis = sqrt( (df.all[,i] - df.all[,9])^2 +
+                    (df.all[,i+1] - df.all[,9+1])^2)
+      cname = paste( str_remove(colnames(df)[9], "_x"), 
+                     str_remove(colnames(df)[i], "_x"),
+                     sep="_")
+      df.temp = data.frame(dis)
+      colnames(df.temp) = c(cname)
+      df.relative_male = cbind(df.relative_male, df.temp)
     }
     
-    #df.all = df.all[df.all$time%%1 == 0,]
+    colnames(df.relative_female) = c("name", "time", "relative", "head", "pron", "tip")
+    colnames(df.relative_male) = c("name", "time", "relative", "head", "pron", "tip")
+    df.relatives <- rbind(df.relative_female, df.relative_male)
     
-    df.pca <- na.omit(df.all)[c(1:2, 15:29)]
+
+    df.pca <- na.omit(df.relatives)
     
     # focus on the time when the distance between female head and male head < 1.5 body length
-    df.pca = df.pca[ df.pca[,5] < 1.5, ]
+    df.pca = df.pca[ df.pca[,4] < 1.5, ]
     
-    # create surrogate data
-    swapname = str_replace_all(colnames(df.pca)[3:17], c("f"="z", "m" = "f", "z" = "m"))
-    revfm = str_detect(swapname, "m.*_f.*")
-    swapname[revfm] = paste(str_remove(str_extract(swapname[revfm], "_.*"), "_"),
-                            str_remove(str_extract(swapname[revfm], ".*_"), "_"),
-                            sep="_")
-    df.pca.swap = df.pca[,c("name","time", swapname)]
-    colnames(df.pca.swap) = colnames(df.pca)
-  
-    df.pca.swap$swap = 1
-    df.pca$swap = 0
-    df.pca.combined = rbind(df.pca,df.pca.swap)
   }
   
   # data from fossil
   {
     load("data/df_fossil.rda")
     df.fossil = data.frame(name="fossil", time = 0, 
-                           data.frame(matrix(df.all.fossil, nrow=1)),
-                           swap=2)
-    colnames(df.fossil) = c("name", "time", names(df.all.fossil),"swap")
+                           data.frame(matrix(df.all.fossil, nrow=1)))
+    colnames(df.fossil) = c("name", "time", names(df.all.fossil))
+    
+    df.fossil = rbind(
+      data.frame( relative = "relative_female",
+                  head = df.fossil[,"fhead_mhead"], 
+                  pron = df.fossil[,"fhead_mpron"],
+                  tip = df.fossil[,"fhead_mtip"]),
+      data.frame( relative = "relative_male",
+                head = df.fossil[,"fhead_mhead"], 
+                pron = df.fossil[,"fpron_mhead"],
+                tip = df.fossil[,"ftip_mpron"])
+    )
+    df.fossil = data.frame(name = "fossil", time = 0,
+                           df.fossil)
   }
   
   # PCA
   {
-    df.pca.combined = rbind(
-      df.pca.combined,
-      df.fossil
-    )
-    #pl = prcomp(df.pca.combined[,3:17], scale= F)
-    # only use fhead_mpron, fpron_mhead, fhead_mtip, ftip_mhead, fpron_mtip, ftip_mpron
-    pl = prcomp(df.pca.combined[,c(6,7,9,11,12,13)], scale= F) 
+    pl = prcomp(rbind(df.pca[,c(4:6)],df.fossil[,4:6]), scale= F) 
     summary(pl)
-    
-    df.pca.res <- cbind(df.pca.combined, pl$x[,1:4])
+    df.pca.res <- cbind(rbind(df.pca,df.fossil), pl$x[,1:2])
   }
   
   save(pl, df.all, df.pca.res, df.pca.combined, file="data/df_pca.rda")
