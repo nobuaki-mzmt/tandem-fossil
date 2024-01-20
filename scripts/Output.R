@@ -384,11 +384,11 @@ Compare.traveled.dis <- function(){
 plot.PCA <- function(){
   load("data/df_pca.rda")
   
-  ggplot(df.pca.res[1:dim(df.pca)[1],],aes(x=PC1, y=PC2)) + 
+  ggplot(df.pca.res[3:dim(df.pca.res)[1]-2,],aes(x=PC1, y=PC2)) + 
     stat_density_2d(geom = "polygon",  aes(alpha = ..level.., 
                                            fill = as.factor(relative)))+
     scale_fill_viridis(discrete = T, direction = 1, end=0.5)+
-    geom_point(data=df.pca.res[dim(df.pca)[1]:(dim(df.pca)[1]+1)+1,], 
+    geom_point(data=df.pca.res[(dim(df.pca.res)[1]-1):(dim(df.pca.res)[1]),], 
                aes(x=PC1, y=PC2))+
     coord_fixed(ylim = c(-1, 1), xlim = c(-1.2,1.), expand = F) +
     theme(aspect.ratio = 1)+
