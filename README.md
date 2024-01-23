@@ -5,7 +5,7 @@ This repository provides access to the data and source code used for the manuscr
 Nobuaki Mizumoto, Simon Hellemans, Michael S Engel, Thomas Bourguignon, Aleš Buček  
 
 Preprint is available at bioRxiv. [![DOI:10.1101/2023.05.22.541647](http://img.shields.io/badge/DOI-10.1101/2023.05.22.541647-B31B1B.svg)](https://doi.org/10.1101/2023.05.22.541647)  
-The all data will be uploaded in Zenodo upon acceptance: [![DOI](https://zenodo.org/badge/DOI/XXXDOIXXX.svg)](https://doi.org/XXXDOIXXX)
+The all data will be uploaded in Zenodo upon acceptance: [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10557251.svg)](https://doi.org/10.5281/zenodo.10557251)
 
 ## Table of Contents
 * [README](./README.md)
