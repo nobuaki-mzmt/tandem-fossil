@@ -43,7 +43,6 @@ outputAll <- function(){
   plot.angle.diff()
   Compare.traveled.dis()
   plot.PCA()
-  regular.tandem.posture()
   head.tip.dis()
 }
 #---------------------------------------------------------------------------#
@@ -76,7 +75,6 @@ plot.trajectories <- function(){
 show.escapeEvents<-function(){
 
   d.trap.obs <- data.frame(fread("data/SticklyTrapObservationNote.csv", header=T))
-  d.trap.obs$Tandem.enter
   d.trap.obs <- d.trap.obs[!is.na(d.trap.obs$Trap.10min),]
   
   # Survival plot
@@ -171,9 +169,7 @@ show.escapeEvents<-function(){
 #------------------------------------------------------------------------------#
 compare.speed <- function(){
   load("data/dfspeed.rda")
-  odir <- "img/"
-  
-  fname <- paste(odir, "speedComparison.txt", sep = "")
+  fname <- paste("img/speedComparison.txt", sep = "")
   sink(fname)
   
   cat("--Speed comparison between treatments--\n")
@@ -201,7 +197,7 @@ compare.speed <- function(){
            palette = "viridis",
            ylab="Speed (bodylength/sec)")+
     stat_compare_means(paired = TRUE)
-  fname <- paste(odir, "speedComparison.pdf", sep = "")
+  fname <- paste("img/speedComparison.pdf", sep = "")
   ggsave(fname, height = pdfHeight, width = pdfWidth)
   
   
@@ -257,19 +253,6 @@ plot.relative.pos <- function(){
   ggsave(filename = paste0("img/RelativeDensity-Control.pdf"),
          width=6, height = 4, family="PT Sans")
   
-  # Surrogate
-  ggplot(df.plot.relative.pos[df.plot.relative.pos$treat=="surrogate",], aes(rpy,rpx)) + 
-    #stat_bin_hex(bins=100) +
-    stat_density_2d(aes(fill = stat(level)), geom="polygon", contour = TRUE, bins=7, col=1)+    scale_fill_viridis() +
-    scale_x_continuous(expand = c(0, 0.05), limits = c(-plot.range, plot.range)) +
-    scale_y_continuous(expand = c(0, 0.05), limits = c(-plot.range, plot.range)) +
-    theme_bw() +
-    coord_fixed() +
-    xlab("Distance left-right (body length)") +
-    ylab("Distance back-front (body length)") +
-    facet_grid(~direction)
-  ggsave(filename = paste0("img/RelativeDensity-Surrogate.pdf"),
-         width=6, height = 4, family="PT Sans")
 }
 #------------------------------------------------------------------------------#
 
@@ -296,7 +279,7 @@ plot.interindividual.distance <- function(){
   
   ## Compare the distance between control and sticky
   ## use the data when dis < 2 bl to remove any separation events
-  df.temp <- subset(df.plot.relative.pos, dis < 2 & treat != "surrogate" & direction == "FtoM")
+  df.temp <- subset(df.plot.relative.pos, dis < 2 & direction == "FtoM")
   df <- na.omit(
     rbind(data.frame(treat = "control", dis = tapply(df.temp$dis, df.temp[,c("id", "treat")], mean)[,1]),
     data.frame(treat = "sticky", dis = tapply(df.temp$dis, df.temp[,c("id", "treat")], mean)[,2])))
@@ -315,9 +298,7 @@ plot.angle.diff <- function(){
     subset(df.plot.relative.pos, direction=="MtoF")$angle
   anglediff[anglediff<0] = anglediff[anglediff<0] + 2*pi
   df.temp$anglediff = anglediff
-  #df.temp <- subset(df.temp, treat!="surrogate")
-  
-  
+
   ## Angle diff
   ggplot(df.temp, aes(x=anglediff,fill=treat)) + 
     geom_histogram(alpha=0.3, draw_baseline = T, position = "identity", bins=30) +
@@ -338,10 +319,6 @@ plot.angle.diff <- function(){
 
   ks.test(df.temp[df.temp$treat=="sticky","anglediff"], 
           df.temp[df.temp$treat=="control","anglediff"])
-  
-  ks.test(df.temp[df.temp$treat=="sticky","anglediff"], 
-               df.temp[df.temp$treat=="surrogate","anglediff"])
-  
 }
 #------------------------------------------------------------------------------#
 
@@ -383,7 +360,7 @@ Compare.traveled.dis <- function(){
 #------------------------------------------------------------------------------#
 plot.PCA <- function(){
   load("data/df_pca.rda")
-  
+
   ggplot(df.pca.res[3:dim(df.pca.res)[1]-2,],aes(x=PC1, y=PC2)) + 
     stat_density_2d(geom = "polygon",  aes(alpha = ..level.., 
                                            fill = as.factor(relative)))+
@@ -396,7 +373,7 @@ plot.PCA <- function(){
   ggsave(file.path("img/", paste0("PCA.pdf")),
          width=5, height=4)  
   
-  train.data = df.pca[, c("head", "pron", "tip", "relative")]
+  train.data = df.pca.res[, c("head", "pron", "tip", "relative")]
   test.data = df.fossil[,c("head", "pron", "tip", "relative")]
   
   train.data$relative = train.data$relative == "relative_leader"
@@ -405,90 +382,6 @@ plot.PCA <- function(){
   lr.model <- glm(relative ~ ., data=train.data, family = binomial)
   summary(lr.model)
   probs <- predict(lr.model, test.data, type = 'response')
-  preds <- ifelse(probs > 0.5,1,0)
-  conf <- table(preds, test.data$relative)
-  conf
-  
-  summary(pl)
-}
-#------------------------------------------------------------------------------#
-
-#------------------------------------------------------------------------------#
-regular.tandem.posture <- function(){
-  
-  load("data/Cf-control-sleap/rda/df_sleap_dis.rda")
-  load("data/df_pca.rda")
-  
-  df_sleap_dis = df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5, ]
-  
-  test.data = df_sleap_dis[df_sleap_dis$swap == 3, 
-                           c("fhead_mtip", "ftip_mhead",
-                             "fpron_mtip", "ftip_mpron", 
-                             "fhead_mpron", "fpron_mhead", "swap")]
-  Y<-predict(Z,test.data)
-  table(test.data[,1],Y$class)
-  table(Y$class == 0)
-  
-  dd <- rbind(df.pca.res[,c(6,7,9,11,12,13,18)],
-              df_sleap_dis[,c(6,7,9,11,12,13,18)])
-  pl2 = prcomp(dd[,1:6], scale= F)
-
-  ddf <- cbind(dd, pl2$x[,1:4])
-
-  ggplot() + 
-    stat_density_2d(data = ddf[ddf$swap<2,],
-                    aes(x=PC1, y=PC2, fill = as.factor(swap), 
-                        alpha = ..level..), geom = "polygon")+
-    scale_fill_viridis(discrete = T, direction = 1, end=1)+
-    geom_point(data=df.pca.res[df.pca.res$swap==2,], aes(x=PC1, y=PC2))+
-    coord_fixed(xlim=c(-2,2), ylim=c(-1,1))+
-    theme(aspect.ratio = 1)+
-    theme_classic()+
-    stat_density_2d(data = ddf[ddf$swap>2,],
-                    aes(x=PC1, y=PC2, fill = as.factor(swap),
-                        alpha = ..level..),
-                    geom = "polygon")
-  ggsave(file.path("img/PCA_w_regular.pdf"), width=5, height=10) 
-  
-  ## LDA only with regular tandem data
-  train.data = df_sleap_dis[c("fhead_mtip", "ftip_mhead", 
-                              "fpron_mtip", "ftip_mpron",
-                              "fhead_mpron", "fpron_mhead", "swap")]
-  
-  (Z<- lda(swap~ .,data=train.data))
-  
-  p <- predict(Z, train.data)
-  mean(p$class==train.data$swap)
-  
-  df.lda <- data.frame(
-    train.data[,1:6],
-    datasets = train.data$swap,
-    lda_class = p$class,
-    p$x,
-    correct = (p$class == train.data$swap),
-    female_prob = p$posterior[,1]
-  )
-  
-  
-  test.data = df.pca.combined[df.pca.combined$swap == 2,
-                              c("fhead_mtip", "ftip_mhead",
-                                "fpron_mtip", "ftip_mpron", 
-                                "fhead_mpron", "fpron_mhead", "swap")]
-  Y<-predict(Z,test.data)
-  table(test.data[,1],Y$class)
-  print("Linear Discriminant Analysis ")
-  print(Y)
-  
-  
-  ggplot(df.lda, aes(x=LD1, fill=as.factor(correct), col=as.factor(datasets)))+
-    geom_histogram(binwidth=0.05, alpha=0.5)+
-    scale_color_viridis(discrete=T, end = 0.5)+
-    scale_fill_viridis(discrete = T, option = "A", direction = -1) +
-    coord_cartesian(xlim = c(-8,8), expand = T) +
-    theme_classic()+
-    facet_grid(datasets ~ .)+
-    theme(legend.position = "bottom")
-  ggsave(file.path("img/", paste0("LDA-regular.pdf")), width=7, height=4)  
 }
 #------------------------------------------------------------------------------#
 
@@ -498,73 +391,39 @@ head.tip.dis <- function(){
   load("data/Cf-control-sleap/rda/df_sleap_dis.rda")
   
   ## trapped tandem
-  ggplot(df.pca.combined[df.pca.combined$swap < 2 & df.pca.combined$fhead_mhead < 1.5,], 
-         aes(x=ftip_mhead, fill=as.factor(swap)))+
+  ggplot(df.pca.res[df.pca.res$data_set == "Cf",], 
+         aes(x=tip, fill=as.factor(relative)))+
     geom_density(alpha=0.4)+
     scale_fill_viridis(discrete=T, end=0.5)+
     theme_classic()+
-    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"ftip_mhead"])+
-    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"fhead_mtip"])+
+    geom_vline(xintercept = df.pca.res[df.pca.res$data_set == "fossil", "tip"] )+
     xlim(c(0,2.5))+
     theme(legend.position = "none")
   ggsave(file.path("img/", paste0("Head-Tip_dis_trap.pdf")),
          width=4, height=3)  
   
-  dftemp = df.pca.combined[df.pca.combined$swap == 0 & df.pca.combined$fhead_mhead < 1.5,]
+  dftemp = df.pca.res[df.pca.res$data_set == "Cf",]
+  dftemp = data.frame(
+    dftemp[dftemp$relative=="relative_leader",1:2],
+    fhead_mtip = dftemp[dftemp$relative=="relative_leader","tip"],
+    ftip_mhead = dftemp[dftemp$relative=="relative_follower","tip"])
   t.test(dftemp$fhead_mtip, dftemp$ftip_mhead, paired=T)
   
-  sum(dftemp$fhead_mtip < dftemp$ftip_mhead) / dim(dftemp)[1]
-  
-  ggplot(df.pca.combined[df.pca.combined$swap < 2 & df.pca.combined$fhead_mhead < 1.5,], 
-         aes(x=fhead_mpron, fill=as.factor(swap)))+
-    geom_density(alpha=0.4)+
-    scale_fill_viridis(discrete=T, end=0.5)+
-    theme_classic()+
-    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"fhead_mpron"])+
-    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"fpron_mhead"])+
-    xlim(c(0,2.5))+
-    theme(legend.position = "none")
-  
-  ggplot(df.pca.combined[df.pca.combined$swap < 2 & df.pca.combined$fhead_mhead < 1.5,], 
-         aes(x=fpron_mtip, fill=as.factor(swap)))+
-    geom_density(alpha=0.4)+
-    scale_fill_viridis(discrete=T, end=0.5)+
-    theme_classic()+
-    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"fpron_mtip"])+
-    geom_vline(xintercept = df.pca.combined[df.pca.combined$swap == 2,"ftip_mpron"])+
-    xlim(c(0,2.5))+
-    theme(legend.position = "none")
+  sum(dftemp$fhead_mtip > dftemp$ftip_mhead) / dim(dftemp)[1]
   
   ## regular tandem
   # focus on the time when the distance between female head and male head < 1.5 body length
-  ggplot(df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5,], 
-         aes(x=ftip_mhead, fill=as.factor(swap)))+
-    geom_density(alpha=0.4)+
-    scale_fill_viridis(discrete=T, end=0.5)+
+  ggplot(df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5,])+
+    geom_density(aes(x=ftip_mhead), fill=viridis(3)[1], alpha=0.4)+
+    geom_density(aes(x=fhead_mtip), fill=viridis(3)[2], alpha=0.4)+
     theme_classic()+
     xlim(c(0,2.5))+
     theme(legend.position = "none")
   ggsave(file.path("img/", paste0("Head-Tip_dis_regular.pdf")),
          width=4, height=3)  
   
-  dftemp = df_sleap_dis[df_sleap_dis$swap == 3 & df_sleap_dis$fhead_mhead < 1.5,]
+  dftemp = df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5,]
   sum(dftemp$fhead_mtip > dftemp$ftip_mhead) / dim(dftemp)[1]
-  
-  ggplot(df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5,], 
-         aes(x=ftip_mpron, fill=as.factor(swap)))+
-    geom_density(alpha=0.4)+
-    scale_fill_viridis(discrete=T, end=0.5)+
-    theme_classic()+
-    xlim(c(0,2.5))+
-    theme(legend.position = "none")
-  
-  ggplot(df_sleap_dis[df_sleap_dis$fhead_mhead < 1.5,], 
-         aes(x=fpron_mhead, fill=as.factor(swap)))+
-    geom_density(alpha=0.4)+
-    scale_fill_viridis(discrete=T, end=0.5)+
-    theme_classic()+
-    xlim(c(0,2.5))+
-    theme(legend.position = "none")
 }
 #------------------------------------------------------------------------------#
   

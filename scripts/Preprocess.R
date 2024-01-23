@@ -550,10 +550,12 @@ posture.organization <- function(){
   {
     pl = prcomp(rbind(df.pca[,c(4:6)],df.fossil[,4:6]), scale= F) 
     summary(pl)
+    df.pca$data_set = "Cf"
+    df.fossil$data_set = "fossil"
     df.pca.res <- cbind(rbind(df.pca,df.fossil), pl$x[,1:2])
   }
   
-  save(pl, df.all, df.pca.res, df.pca.combined, file="data/df_pca.rda")
+  save(pl, df.all, df.pca.res, df.fossil, file="data/df_pca.rda")
 }
 #------------------------------------------------------------------------------#
 
